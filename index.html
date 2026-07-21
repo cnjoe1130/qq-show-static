@@ -3,519 +3,1033 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>8bit 头像工坊</title>
+<title>✦ PIXEL DREAM ✦</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&family=Press+Start+2P&family=VT323&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&family=DotGothic16&family=Press+Start+2P&family=VT323&display=swap');
 * { margin: 0; padding: 0; box-sizing: border-box; }
 :root {
   --pink: #ff6ec7; --purple: #b967ff; --blue: #01cdfe; --cyan: #05ffa1;
-  --bg: #0a0015; --panel: rgba(20,10,40,0.9);
-  --pixel-font: 'Silkscreen', monospace;
-  --pixel-cn: 'VT323', monospace;
+  --win-bg: #c0c0c0; --win-dark: #808080; --win-light: #dfdfdf;
+  --win-title: linear-gradient(90deg, #000080, #1084d0);
+  --pixel-font: 'Silkscreen', 'Press Start 2P', monospace;
+  --pixel-cn: 'DotGothic16', 'Silkscreen', sans-serif;
 }
 body {
-  background: var(--bg); color: #e0d0ff; font-family: var(--pixel-cn);
-  min-height: 100vh; padding: 16px;
+  background: #0a0015; font-family: 'VT323', monospace; color: #e0d0ff;
+  min-height: 100vh; padding: 20px;
 }
 .bg {
   position: fixed; inset: 0; z-index: 0;
   background:
     radial-gradient(ellipse at 20% 50%, rgba(185,103,255,0.3) 0%, transparent 60%),
     radial-gradient(ellipse at 80% 30%, rgba(255,110,199,0.2) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 80%, rgba(1,205,254,0.15) 0%, transparent 50%),
     linear-gradient(180deg, #0a0015 0%, #1a0030 50%, #0a0015 100%);
+  animation: bgPulse 8s ease-in-out infinite alternate;
 }
+@keyframes bgPulse { 0% { filter: brightness(0.9) saturate(1.2); } 100% { filter: brightness(1.1) saturate(1.5); } }
 .crt {
   position: fixed; inset: 0; z-index: 1000; pointer-events: none;
   background: repeating-linear-gradient(0deg, rgba(0,0,0,0.15) 0px, rgba(0,0,0,0.15) 1px, transparent 1px, transparent 3px);
 }
-.container {
-  position: relative; z-index: 1; width: 100%; max-width: 700px; margin: 0 auto;
+.crt::after { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse at center, transparent 60%, rgba(0,0,0,0.4) 100%); }
+
+/* ===== BOOT ===== */
+.boot-screen {
+  position: fixed; inset: 0; z-index: 2000; background: #000080;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  color: white; font-family: var(--pixel-font);
+  transition: opacity 0.8s, transform 0.8s;
 }
+.boot-screen.hidden { opacity: 0; transform: scale(1.1); pointer-events: none; }
+.boot-logo { font-size: 64px; margin-bottom: 16px; animation: bootPulse 1.2s ease-in-out infinite; filter: drop-shadow(0 0 20px rgba(185,103,255,0.8)); }
+@keyframes bootPulse { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.1); opacity: 0.7; } }
+.boot-title { font-size: 28px; margin-bottom: 8px; background: linear-gradient(90deg, #ff6ec7, #b967ff, #01cdfe, #05ffa1); -webkit-background-clip: text; -webkit-text-fill-color: transparent; animation: holoShift 3s ease-in-out infinite; }
+@keyframes holoShift { 0%, 100% { filter: hue-rotate(0deg); } 50% { filter: hue-rotate(40deg); } }
+.boot-sub { font-size: 12px; color: #8888cc; margin-bottom: 30px; letter-spacing: 4px; font-family: var(--pixel-cn); }
+.boot-bar-outer { width: 300px; height: 16px; background: #000040; border: 2px solid; border-color: #4444aa #222266 #222266 #4444aa; padding: 2px; margin-bottom: 16px; }
+.boot-bar-inner { height: 100%; width: 0%; background: linear-gradient(90deg, var(--pink), var(--purple), var(--blue)); transition: width 0.3s; }
+.boot-status { font-size: 11px; color: #6666aa; animation: blink 1s step-end infinite; min-height: 1.2em; }
+@keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+.boot-scanlines { position: absolute; inset: 0; pointer-events: none; background: repeating-linear-gradient(0deg, rgba(0,0,0,0.3) 0px, rgba(0,0,0,0.3) 1px, transparent 1px, transparent 3px); }
+.boot-stars { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+.star { position: absolute; width: 2px; height: 2px; background: white; animation: twinkle 2s ease-in-out infinite; }
+@keyframes twinkle { 0%, 100% { opacity: 0.2; } 50% { opacity: 1; } }
+
+/* ===== MAIN ===== */
+.title-bar { background: var(--win-title); color: white; font-family: var(--pixel-font); font-size: 12px; padding: 6px 8px; display: flex; justify-content: space-between; align-items: center; border: 2px solid; border-color: var(--win-light) var(--win-dark) var(--win-dark) var(--win-light); }
+.win-btn { width: 16px; height: 14px; background: var(--win-bg); border: 2px solid; border-color: var(--win-light) var(--win-dark) var(--win-dark) var(--win-light); display: flex; align-items: center; justify-content: center; font-size: 9px; color: black; cursor: pointer; }
+.win-panel { background: var(--win-bg); border: 2px solid; border-color: var(--win-light) var(--win-dark) var(--win-dark) var(--win-light); }
+.container { position: relative; z-index: 1; width: 100%; max-width: 700px; margin: 0 auto; opacity: 0; transition: opacity 0.6s; }
+.container.visible { opacity: 1; }
 .header { text-align: center; padding: 20px 16px; }
-.header h1 {
-  font-family: var(--pixel-font); font-size: 22px;
-  background: linear-gradient(90deg, var(--pink), var(--purple), var(--blue), var(--cyan));
-  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-}
-.header .sub { font-size: 16px; color: #888; margin-top: 4px; }
-
-/* Tabs */
-.tabs { display: flex; gap: 4px; margin: 16px; }
-.tab {
-  flex: 1; padding: 12px 8px; text-align: center; cursor: pointer;
-  font-family: var(--pixel-cn); font-size: 16px;
-  background: #333; color: #888; border: 2px solid #555; transition: all 0.2s;
-}
-.tab.active { background: var(--purple); color: white; border-color: var(--pink); }
-.tab-content { display: none; }
-.tab-content.active { display: block; }
-
-/* Upload Zone */
-.upload-zone {
-  border: 3px dashed var(--purple); padding: 40px 20px; text-align: center;
-  cursor: pointer; margin: 16px; background: rgba(185,103,255,0.05); transition: all 0.3s;
-}
+.header h1 { font-family: var(--pixel-font); font-size: 22px; background: linear-gradient(90deg, var(--pink), var(--purple), var(--blue), var(--cyan)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; animation: holoShift 4s ease-in-out infinite; }
+.header .sub { font-family: var(--pixel-cn); }
+.upload-zone { border: 3px dashed var(--purple); padding: 40px 20px; text-align: center; cursor: pointer; transition: all 0.3s; margin: 16px; background: rgba(185,103,255,0.05); }
 .upload-zone:hover { border-color: var(--pink); background: rgba(255,110,199,0.1); }
 .upload-zone.dragover { border-color: var(--cyan); background: rgba(5,255,161,0.1); }
-
-/* Style Grid */
 .style-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; padding: 16px; }
-.style-btn {
-  font-family: var(--pixel-cn); font-size: 14px; padding: 12px 6px; cursor: pointer;
-  text-align: center; background: #333; color: #aaa; border: 2px solid #555; transition: all 0.2s;
-}
-.style-btn:hover { background: #444; }
-.style-btn.active { background: var(--purple); color: white; border-color: var(--pink); box-shadow: 0 0 12px rgba(185,103,255,0.5); }
-
-/* Buttons */
-.action-btn {
-  display: block; width: calc(100% - 32px); margin: 16px; padding: 14px;
-  font-family: var(--pixel-cn); font-size: 18px;
-  background: linear-gradient(90deg, var(--pink), var(--purple));
-  color: white; border: none; cursor: pointer; transition: all 0.3s;
-}
-.action-btn:hover { filter: brightness(1.2); transform: scale(1.02); }
-.action-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
-
-/* Text Input */
-.text-input {
-  width: calc(100% - 32px); margin: 12px 16px; padding: 12px;
-  font-family: var(--pixel-cn); font-size: 16px;
-  background: rgba(20,10,40,0.8); color: var(--cyan);
-  border: 2px solid var(--purple); outline: none; resize: vertical; min-height: 60px;
-}
-.text-input:focus { border-color: var(--pink); box-shadow: 0 0 10px rgba(255,110,199,0.3); }
-
-/* Result Area */
+.style-btn { font-family: var(--pixel-cn); font-size: 13px; padding: 14px 8px; cursor: pointer; text-align: center; background: var(--win-bg); color: #000; border: 2px solid; border-color: var(--win-light) var(--win-dark) var(--win-dark) var(--win-light); transition: all 0.2s; }
+.style-btn:hover { background: #d0d0d0; }
+.style-btn.active { background: var(--purple); color: white; border-color: var(--pink) var(--blue) var(--blue) var(--pink); box-shadow: 0 0 12px rgba(185,103,255,0.5); }
+.style-btn .sub { font-family: 'VT323', monospace; font-size: 13px; margin-top: 4px; display: block; opacity: 0.7; }
+.generate-btn { display: block; width: calc(100% - 32px); margin: 16px; padding: 16px; font-family: var(--pixel-cn); font-size: 18px; background: linear-gradient(90deg, var(--pink), var(--purple)); color: white; border: none; cursor: pointer; transition: all 0.3s; }
+.generate-btn:hover { filter: brightness(1.2); transform: scale(1.02); }
+.generate-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
 .result-area { padding: 16px; text-align: center; min-height: 100px; }
-.result-img { max-width: 300px; max-height: 300px; margin: 12px auto; border: 2px solid var(--blue); display: none; image-rendering: pixelated; }
-.loading { display: none; color: var(--cyan); animation: blink 1s step-end infinite; }
-@keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0; } }
-.download-btn {
-  display: inline-block; margin-top: 12px; padding: 8px 20px;
-  font-family: var(--pixel-cn); font-size: 14px;
-  background: var(--cyan); color: #000; border: none; cursor: pointer; text-decoration: none;
+.loading-box { padding: 20px; }
+.loading-bar-outer { width: 80%; max-width: 300px; height: 12px; margin: 12px auto; background: #333; border: 2px solid #555; }
+.loading-bar-inner { height: 100%; width: 0%; background: linear-gradient(90deg, var(--cyan), var(--blue), var(--purple)); animation: loadBar 60s linear forwards; }
+@keyframes loadBar { 0% { width: 0%; } 20% { width: 30%; } 50% { width: 60%; } 80% { width: 85%; } 100% { width: 95%; } }
+.loading-text { font-family: var(--pixel-cn); font-size: 14px; color: var(--cyan); animation: blink 0.8s step-end infinite; margin-top: 8px; }
+.loading-hint { font-family: var(--pixel-cn); font-size: 14px; color: #666; margin-top: 8px; }
+.preview-img { max-width: 200px; max-height: 200px; margin: 12px auto; border: 2px solid var(--blue); display: none; image-rendering: pixelated; }
+.text-input { width: calc(100% - 32px); margin: 12px 16px; padding: 12px; font-family: 'VT323', monospace; font-size: 18px; background: #1a0030; color: var(--cyan); border: 2px solid var(--purple); outline: none; resize: vertical; min-height: 60px; line-height: 1.5; }
+.text-input::placeholder { color: #666; }
+.text-input:focus { border-color: var(--pink); box-shadow: 0 0 10px rgba(255,110,199,0.3); }
+.mode-tabs { display: flex; padding: 0 16px; gap: 4px; margin-top: 12px; }
+.mode-tab { flex: 1; padding: 10px; text-align: center; cursor: pointer; font-family: var(--pixel-cn); font-size: 13px; background: #808080; color: #000; border: 2px solid; border-color: var(--win-light) var(--win-dark) var(--win-dark) var(--win-light); }
+.mode-tab.active { background: var(--purple); color: white; }
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+.footer { text-align: center; padding: 16px; font-size: 14px; color: #555; }
+.download-btn { display: inline-block; margin-top: 12px; padding: 8px 20px; font-family: var(--pixel-cn); font-size: 13px; background: var(--cyan); color: #000; border: none; cursor: pointer; text-decoration: none; }
+@media (max-width: 640px) {
+  .header h1 { font-size: 16px; }
+  .style-grid { grid-template-columns: repeat(2, 1fr); }
+  .boot-title { font-size: 18px; }
+  .boot-bar-outer { width: 200px; }
 }
-.error { color: #ff6b6b; padding: 12px; text-align: center; }
 
-/* QQ Show Asset Grid */
-.asset-section { padding: 16px; }
-.asset-category { margin-bottom: 16px; }
-.asset-category h3 {
-  font-family: var(--pixel-cn); font-size: 16px; color: var(--pink);
-  border-bottom: 1px solid #333; padding-bottom: 4px; margin-bottom: 8px;
-}
-.asset-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; }
-.asset-item {
-  width: 100%; aspect-ratio: 1; cursor: pointer; border: 2px solid transparent;
-  transition: all 0.2s; object-fit: contain; background: rgba(0,0,0,0.3);
-}
-.asset-item:hover { border-color: var(--pink); }
-.asset-item.selected { border-color: var(--cyan); box-shadow: 0 0 8px rgba(5,255,161,0.5); }
-
-/* Preview */
-.preview-panel {
-  position: fixed; bottom: 0; left: 0; right: 0; z-index: 100;
-  background: rgba(10,0,21,0.95); border-top: 2px solid var(--purple);
-  padding: 12px; text-align: center; display: none;
-}
-.preview-panel.show { display: block; }
-.preview-canvas { max-width: 200px; max-height: 200px; border: 2px solid var(--blue); }
-
-.footer { text-align: center; padding: 32px 16px; font-size: 14px; color: #555; }
-
-/* API Key Modal */
+/* ===== API KEY MODAL ===== */
 .modal-overlay {
-  position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 2000;
+  position: fixed; inset: 0; z-index: 5000; background: rgba(0,0,0,0.85);
   display: flex; align-items: center; justify-content: center;
 }
-.modal {
+.modal-box {
   background: #1a0030; border: 2px solid var(--purple); padding: 24px;
-  max-width: 400px; width: 90%; color: #e0d0ff; font-family: var(--pixel-cn);
+  max-width: 420px; width: 90%; font-family: var(--pixel-cn);
 }
-.modal h2 { font-size: 18px; margin-bottom: 12px; color: var(--pink); }
-.modal input {
-  width: 100%; padding: 10px; margin: 8px 0 16px; font-size: 14px;
-  background: #0a0015; color: var(--cyan); border: 1px solid var(--purple);
+.modal-box h2 { color: var(--cyan); font-size: 18px; margin-bottom: 12px; font-family: var(--pixel-font); }
+.modal-box p { color: #aaa; font-size: 14px; margin-bottom: 12px; line-height: 1.5; }
+.modal-box input[type="text"] {
+  width: 100%; padding: 10px; font-family: 'VT323', monospace; font-size: 16px;
+  background: #0a0015; color: var(--cyan); border: 2px solid var(--purple); outline: none; margin-bottom: 12px;
 }
-.modal button {
-  padding: 8px 16px; font-size: 14px; background: var(--purple); color: white;
-  border: none; cursor: pointer; margin-right: 8px;
-}
+.modal-box input[type="text"]:focus { border-color: var(--pink); }
+.modal-box .btn-row { display: flex; gap: 8px; justify-content: flex-end; }
+.modal-box button { padding: 8px 16px; font-family: var(--pixel-cn); font-size: 14px; border: none; cursor: pointer; }
+.modal-box .btn-save { background: var(--purple); color: white; }
+.modal-box .btn-skip { background: #444; color: #aaa; }
+.modal-box .btn-skip:hover { background: #555; }
+.modal-box .btn-save:hover { filter: brightness(1.2); }
+.modal-box .error-msg { color: var(--pink); font-size: 12px; margin-top: 6px; display: none; }
+
+/* ===== QQ SHOW DRESS-UP ===== */
+.qq-item-thumb { image-rendering: pixelated; }
 </style>
 </head>
 <body>
 <div class="bg"></div>
 <div class="crt"></div>
 
-<div class="container">
-  <div class="header">
-    <h1>8bit 头像工坊</h1>
-    <div class="sub">PIXEL DREAM ✦</div>
-  </div>
-
-  <!-- Tabs -->
-  <div class="tabs">
-    <div class="tab active" data-tab="pixelate">像素化</div>
-    <div class="tab" data-tab="generate">AI生图</div>
-    <div class="tab" data-tab="qqshow">QQ秀</div>
-  </div>
-
-  <!-- Tab 1: Pixelate -->
-  <div class="tab-content active" id="tab-pixelate">
-    <div class="upload-zone" id="upload-zone">
-      <div style="font-size:24px; margin-bottom:8px;">📸</div>
-      <div>点击或拖拽上传图片</div>
-      <div style="font-size:12px; color:#666; margin-top:8px;">支持 JPG/PNG，最大 5MB</div>
-    </div>
-    <input type="file" id="file-input" accept="image/*" style="display:none">
-
-    <div class="style-grid" id="style-grid"></div>
-
-    <button class="action-btn" id="btn-pixelate" disabled>✨ 开始像素化</button>
-
-    <div class="result-area">
-      <div class="loading" id="loading-pixelate">⏳ 像素化处理中...</div>
-      <img class="result-img" id="result-pixelate">
-      <a class="download-btn" id="download-pixelate" style="display:none">💾 下载图片</a>
-    </div>
-  </div>
-
-  <!-- Tab 2: AI Generate -->
-  <div class="tab-content" id="tab-generate">
-    <textarea class="text-input" id="ai-prompt" placeholder="描述你想要的像素风头像，比如：一个戴墨镜的猫咪，赛博朋克风格"></textarea>
-    <div class="style-grid" id="ai-style-grid"></div>
-    <button class="action-btn" id="btn-generate">🤖 AI 生成像素头像</button>
-    <div class="result-area">
-      <div class="loading" id="loading-generate">⏳ AI 生成中，请稍候...</div>
-      <img class="result-img" id="result-generate">
-      <a class="download-btn" id="download-generate" style="display:none">💾 下载图片</a>
-    </div>
-  </div>
-
-  <!-- Tab 3: QQ Show -->
-  <div class="tab-content" id="tab-qqshow">
-    <div class="asset-section" id="asset-section">
-      <p style="color:#888; margin-bottom:12px;">选择素材装扮你的QQ秀：</p>
-    </div>
-    <div class="style-grid" id="qq-style-grid"></div>
-    <button class="action-btn" id="btn-compose">🎨 生成QQ秀</button>
-    <div class="result-area">
-      <div class="loading" id="loading-compose">⏳ 生成中...</div>
-      <img class="result-img" id="result-compose">
-      <a class="download-btn" id="download-compose" style="display:none">💾 下载QQ秀</a>
-    </div>
-  </div>
-
-  <div class="footer">Pixel Dream v3.0 — 纯前端版 | Powered by Canvas API</div>
+<div class="boot-screen" id="bootScreen">
+  <div class="boot-scanlines"></div>
+  <div class="boot-stars" id="bootStars"></div>
+  <div class="boot-logo">✦</div>
+  <div class="boot-title">PIXEL DREAM</div>
+  <div class="boot-sub">v2.0 — 千禧像素生成器 · 离线版</div>
+  <div class="boot-bar-outer"><div class="boot-bar-inner" id="bootBar"></div></div>
+  <div class="boot-status" id="bootStatus">INITIALIZING...</div>
 </div>
 
-<!-- Preview Panel -->
-<div class="preview-panel" id="preview-panel">
-  <canvas class="preview-canvas" id="preview-canvas"></canvas>
+<div class="container" id="app">
+  <div class="title-bar">
+    <span>✦ PIXEL DREAM.exe</span>
+    <div style="display:flex;gap:2px;">
+      <div class="win-btn">_</div>
+      <div class="win-btn">□</div>
+      <div class="win-btn">✕</div>
+    </div>
+  </div>
+
+  <div class="win-panel">
+    <div class="header">
+      <h1>PIXEL DREAM</h1>
+      <div style="font-size:14px;color:#b0a0d0;margin-top:6px;letter-spacing:4px;font-family:var(--pixel-cn);">✦ 像素梦核头像生成器 ✦</div>
+    </div>
+
+    <div class="mode-tabs">
+      <div class="mode-tab active" onclick="switchMode('upload')">📷 上传图片</div>
+      <div class="mode-tab" onclick="switchMode('text')">✏️ 文字描述</div>
+      <div class="mode-tab" onclick="switchMode('qqshow')">✨ QQ秀</div>
+    </div>
+
+    <div class="tab-content active" id="tab-upload">
+      <div class="upload-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+        <div style="font-size:48px;">📸</div>
+        <p style="font-size:18px;margin-top:8px;font-family:var(--pixel-cn);">拖拽图片到这里 / 点击选择</p>
+        <p style="font-size:14px;color:#888;font-family:var(--pixel-cn);">支持 JPG、PNG</p>
+      </div>
+      <input type="file" id="fileInput" accept="image/*" style="display:none" onchange="handleFile(this)">
+      <img class="preview-img" id="previewImg">
+    </div>
+
+    <div class="tab-content" id="tab-text">
+      <textarea class="text-input" id="descInput" placeholder="描述你想生成的角色...&#10;例如：双马尾女孩，穿Coldplay T恤，拿着麦克风" maxlength="200" rows="3"></textarea>
+      <div style="padding:0 16px;font-size:13px;color:#888;font-family:var(--pixel-cn);">💡 支持中英文描述，越详细效果越好</div>
+    </div>
+
+    <div class="tab-content" id="tab-qqshow">
+      <div style="display:flex;gap:4px;padding:0 16px;margin-bottom:8px;">
+        <button class="mode-tab active" id="qqTextBtn" onclick="switchQQMode('text')" style="flex:1;font-size:12px;">✏️ 文字描述</button>
+        <button class="mode-tab" id="qqPhotoBtn" onclick="switchQQMode('photo')" style="flex:1;font-size:12px;">📸 上传照片</button>
+      </div>
+      <div id="qqTextMode">
+        <textarea class="text-input" id="qqInput" placeholder="描述你想要的QQ秀形象...&#10;例如：粉色双马尾女孩，穿白色连衣裙，戴皇冠，紫色星空背景" maxlength="200" rows="3"></textarea>
+        <div style="padding:0 16px;font-size:13px;color:#888;font-family:var(--pixel-cn);">💡 AI会从素材库中自动搭配最适合的元素组合</div>
+      </div>
+      <div id="qqPhotoMode" style="display:none;">
+        <div class="upload-zone" id="qqDropZone" onclick="document.getElementById('qqFileInput').click()" style="margin:0 16px;">
+          <div style="font-size:48px;">🧑</div>
+          <p style="font-size:16px;margin-top:8px;font-family:var(--pixel-cn);">上传你的照片</p>
+          <p style="font-size:13px;color:#888;font-family:var(--pixel-cn);">AI会识别你的特征，自动生成专属QQ秀</p>
+        </div>
+        <input type="file" id="qqFileInput" accept="image/*" style="display:none" onchange="handleQQFile(this)">
+        <img class="preview-img" id="qqPreviewImg">
+      </div>
+    </div>
+
+    <div id="styleSection">
+      <div style="padding:0 16px;font-family:var(--pixel-cn);font-size:13px;color:#888;">选择风格：</div>
+      <div class="style-grid" id="styleGrid"></div>
+    </div>
+
+    <button class="generate-btn" id="generateBtn" onclick="generate()" disabled>✦ 开始生成 ✦</button>
+    <div class="result-area" id="resultArea"></div>
+  </div>
+
+  <div class="footer">✦ PIXEL DREAM — Y2K Dreamcore ✦</div>
+  <button id="bgmBtn" onclick="toggleBGM()" style="position:fixed;bottom:16px;right:16px;z-index:100;background:var(--purple);color:white;border:2px solid var(--pink);width:44px;height:44px;border-radius:50%;font-size:20px;cursor:pointer;box-shadow:0 0 12px rgba(185,103,255,0.5);">🔇</button>
+  <audio id="bgmAudio" loop preload="auto"><source src="bgm.mp3" type="audio/mpeg"></audio>
 </div>
 
-<!-- API Key Modal -->
-<div class="modal-overlay" id="api-modal" style="display:none;">
-  <div class="modal">
-    <h2>🔑 设置 API Key</h2>
-    <p style="font-size:14px; margin-bottom:8px;">AI生图需要 Agnes AI API Key</p>
-    <input type="password" id="api-key-input" placeholder="输入 API Key">
-    <div>
-      <button onclick="saveApiKey()">保存</button>
-      <button onclick="document.getElementById('api-modal').style.display='none'" style="background:#555;">取消</button>
+<!-- ===== API KEY MODAL ===== -->
+<div class="modal-overlay" id="apiKeyModal" style="display:none;">
+  <div class="modal-box">
+    <h2>🔑 Agnes AI API Key</h2>
+    <p>文字描述/AI生图模式需要 Agnes AI 的 API Key。<br>请到 <span style="color:var(--pink);">apihub.agnes-ai.com</span> 获取。</p>
+    <input type="text" id="apiKeyInput" placeholder="sk-xxxxxxxxxxxxxxxx" autocomplete="off">
+    <div class="error-msg" id="apiKeyError"></div>
+    <div class="btn-row">
+      <button class="btn-skip" onclick="closeApiKeyModal()">跳过</button>
+      <button class="btn-save" onclick="saveApiKey()">保存</button>
     </div>
   </div>
 </div>
 
-<script src="scripts/pixel-art.js"></script>
 <script>
-// ===== State =====
-let currentFile = null;
-let selectedStyle = 'snes';
-let selectedAssets = {};
-let catalog = null;
-let apiKey = localStorage.getItem('agnes_api_key') || '';
+// ======================================================
+// AUDIO CONTEXT HELPER — square-wave beeps
+// ======================================================
+let _audioCtx = null;
+function getAudioCtx() {
+  if (!_audioCtx) _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return _audioCtx;
+}
+function beep(freq, duration, delay) {
+  try {
+    const c = getAudioCtx();
+    const o = c.createOscillator(), g = c.createGain();
+    o.type = 'square'; o.frequency.value = freq;
+    const t = c.currentTime + (delay || 0);
+    g.gain.setValueAtTime(0.08, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + (duration || 0.15));
+    o.connect(g).connect(c.destination);
+    o.start(t); o.stop(t + (duration || 0.15));
+  } catch(e) {}
+}
 
-// ===== Styles =====
+// ======================================================
+// BOOT SCREEN
+// ======================================================
+const starsEl = document.getElementById('bootStars');
+for (let i = 0; i < 30; i++) {
+  const s = document.createElement('div');
+  s.className = 'star';
+  s.style.left = Math.random() * 100 + '%';
+  s.style.top = Math.random() * 100 + '%';
+  s.style.animationDelay = Math.random() * 2 + 's';
+  starsEl.appendChild(s);
+}
+
+const bootMsgs = ['LOADING PIXEL ENGINE...', 'SCANNING PALETTES...', 'CALIBRATING CRT...', 'INIT 8BIT AUDIO...', 'LOADING ASSETS...', 'CHECKING API KEY...', 'RENDERING...', 'READY ✦'];
+let bootStep = 0;
+function bootTick() {
+  if (bootStep < bootMsgs.length) {
+    document.getElementById('bootBar').style.width = ((bootStep + 1) / bootMsgs.length * 100) + '%';
+    document.getElementById('bootStatus').textContent = bootMsgs[bootStep];
+    bootStep++;
+    setTimeout(bootTick, 180 + Math.random() * 250);
+  } else {
+    setTimeout(() => {
+      document.getElementById('bootScreen').classList.add('hidden');
+      document.getElementById('app').classList.add('visible');
+      // Boot chord
+      beep(262, 0.25, 0);
+      beep(330, 0.25, 0.15);
+      beep(392, 0.25, 0.3);
+      beep(523, 0.25, 0.45);
+      // Auto-play BGM on first interaction
+      const autoPlayOnce = () => { startBGM(); document.removeEventListener('click', autoPlayOnce); };
+      document.addEventListener('click', autoPlayOnce);
+    }, 300);
+  }
+}
+setTimeout(bootTick, 400);
+
+// ======================================================
+// STYLES
+// ======================================================
 const STYLES = {
-  arcade: { label: '街机', sub: '粗犷复古' },
-  snes: { label: '像素', sub: '细腻高清' },
-  pico8: { label: 'Q萌', sub: '幻想主机' },
-  nes: { label: 'NES', sub: '经典红白机' },
-  gameboy: { label: 'GB', sub: '经典绿屏' },
-  c64: { label: 'C64', sub: '复古电脑' },
-  neon: { label: '霓虹', sub: '赛博朋克' },
-  retro: { label: '复古', sub: '暖色调' }
+  arcade:  { icon: '🕹️', name: '街机', sub: '粗犷复古' },
+  snes:    { icon: '👾', name: '像素', sub: '细腻高清' },
+  pico8:   { icon: '💜', name: 'Q萌', sub: '幻想主机' },
+  gameboy: { icon: '🟢', name: 'GB',  sub: '经典绿屏' },
 };
+let selectedStyle = 'arcade';
+let selectedFile = null;
+let currentMode = 'upload';
 
-// ===== Init =====
-document.addEventListener('DOMContentLoaded', () => {
-  initTabs();
-  initStyleGrids();
-  initUpload();
-  initButtons();
-  loadCatalog();
+const grid = document.getElementById('styleGrid');
+Object.entries(STYLES).forEach(([key, s]) => {
+  const b = document.createElement('div');
+  b.className = 'style-btn' + (key === selectedStyle ? ' active' : '');
+  b.innerHTML = `${s.icon}<br>${s.name}<span class="sub">${s.sub}</span>`;
+  b.onclick = () => selectStyle(key);
+  b.dataset.style = key;
+  grid.appendChild(b);
 });
 
-// ===== Tabs =====
-function initTabs() {
-  document.querySelectorAll('.tab').forEach(tab => {
-    tab.addEventListener('click', () => {
-      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-      tab.classList.add('active');
-      document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
-    });
-  });
+function selectStyle(k) {
+  selectedStyle = k;
+  document.querySelectorAll('.style-btn').forEach(b => b.classList.toggle('active', b.dataset.style === k));
+  beep(880, 0.08);
+  updateBtn();
 }
 
-// ===== Style Grids =====
-function initStyleGrids() {
-  ['style-grid', 'ai-style-grid', 'qq-style-grid'].forEach(gridId => {
-    const grid = document.getElementById(gridId);
-    Object.entries(STYLES).forEach(([key, val]) => {
-      const btn = document.createElement('div');
-      btn.className = 'style-btn' + (key === selectedStyle ? ' active' : '');
-      btn.innerHTML = `${val.label}<span class="sub">${val.sub}</span>`;
-      btn.dataset.style = key;
-      btn.addEventListener('click', () => {
-        grid.querySelectorAll('.style-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        selectedStyle = key;
-      });
-      grid.appendChild(btn);
-    });
-  });
+function switchMode(m) {
+  currentMode = m;
+  document.querySelectorAll('.mode-tab').forEach((t,i) => t.classList.toggle('active', (i===0&&m==='upload')||(i===1&&m==='text')||(i===2&&m==='qqshow')));
+  document.querySelectorAll('.tab-content').forEach((t,i) => t.classList.toggle('active', (i===0&&m==='upload')||(i===1&&m==='text')||(i===2&&m==='qqshow')));
+  document.getElementById('styleSection').style.display = m === 'qqshow' ? 'none' : 'block';
+  beep(660, 0.08);
+  updateBtn();
 }
 
-// ===== Upload =====
-function initUpload() {
-  const zone = document.getElementById('upload-zone');
-  const input = document.getElementById('file-input');
-
-  zone.addEventListener('click', () => input.click());
-  zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('dragover'); });
-  zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
-  zone.addEventListener('drop', e => {
-    e.preventDefault();
-    zone.classList.remove('dragover');
-    if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
-  });
-  input.addEventListener('change', () => { if (input.files.length) handleFile(input.files[0]); });
+function handleFile(input) {
+  selectedFile = input.files[0];
+  if (selectedFile) {
+    const r = new FileReader();
+    r.onload = e => { const img = document.getElementById('previewImg'); img.src = e.target.result; img.style.display = 'block'; };
+    r.readAsDataURL(selectedFile);
+  }
+  updateBtn();
 }
 
-function handleFile(file) {
-  if (file.size > 5 * 1024 * 1024) { alert('文件太大，最大5MB'); return; }
-  currentFile = file;
-  const reader = new FileReader();
-  reader.onload = e => {
-    const img = document.getElementById('result-pixelate');
-    img.src = e.target.result;
-    img.style.display = 'block';
-  };
-  reader.readAsDataURL(file);
-  document.getElementById('btn-pixelate').disabled = false;
-}
-
-// ===== Buttons =====
-function initButtons() {
-  document.getElementById('btn-pixelate').addEventListener('click', doPixelate);
-  document.getElementById('btn-generate').addEventListener('click', doGenerate);
-  document.getElementById('btn-compose').addEventListener('click', doCompose);
-}
-
-// ===== Pixelate =====
-async function doPixelate() {
-  if (!currentFile) return;
-  const loading = document.getElementById('loading-pixelate');
-  const result = document.getElementById('result-pixelate');
-  const download = document.getElementById('download-pixelate');
-
-  loading.style.display = 'block';
-  result.style.display = 'none';
-  download.style.display = 'none';
-
-  try {
-    const img = new Image();
-    img.src = result.src;
-    await new Promise(r => img.onload = r);
-
-    const canvas = PixelArt.pixelArt(img, selectedStyle);
-    result.src = canvas.toDataURL('image/png');
-    result.style.display = 'block';
-    download.href = result.src;
-    download.download = `pixel-${selectedStyle}-${Date.now()}.png`;
-    download.style.display = 'inline-block';
-  } catch (err) {
-    alert('像素化失败: ' + err.message);
-  } finally {
-    loading.style.display = 'none';
+function updateBtn() {
+  const b = document.getElementById('generateBtn');
+  if (currentMode === 'upload') b.disabled = !selectedFile;
+  else if (currentMode === 'text') b.disabled = !document.getElementById('descInput').value.trim();
+  else if (currentMode === 'qqshow') {
+    if (qqMode === 'photo') b.disabled = !qqPhotoFile;
+    else b.disabled = !document.getElementById('qqInput').value.trim();
   }
 }
+document.getElementById('descInput').addEventListener('input', updateBtn);
+document.getElementById('qqInput').addEventListener('input', updateBtn);
 
-// ===== AI Generate =====
-async function doGenerate() {
-  const prompt = document.getElementById('ai-prompt').value.trim();
-  if (!prompt) { alert('请输入描述'); return; }
-  if (!apiKey) { document.getElementById('api-modal').style.display = 'flex'; return; }
-
-  const loading = document.getElementById('loading-generate');
-  const result = document.getElementById('result-generate');
-  const download = document.getElementById('download-generate');
-
-  loading.style.display = 'block';
-  result.style.display = 'none';
-  download.style.display = 'none';
-
-  try {
-    // Call Agnes API
-    const resp = await fetch('https://apihub.agnes-ai.com/v1/images/generations', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        model: 'flux',
-        prompt: `pixel art style, ${prompt}, retro game aesthetic, clean background`,
-        n: 1,
-        size: '1024x1024'
-      })
-    });
-
-    if (!resp.ok) throw new Error(`API error: ${resp.status}`);
-    const data = await resp.json();
-    const imageUrl = data.data[0].url;
-
-    // Load and pixelate
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.src = imageUrl;
-    await new Promise(r => img.onload = r);
-
-    const canvas = PixelArt.pixelArt(img, selectedStyle);
-    result.src = canvas.toDataURL('image/png');
-    result.style.display = 'block';
-    download.href = result.src;
-    download.download = `ai-pixel-${selectedStyle}-${Date.now()}.png`;
-    download.style.display = 'inline-block';
-  } catch (err) {
-    alert('AI生成失败: ' + err.message);
-  } finally {
-    loading.style.display = 'none';
+// Drop zone
+const dz = document.getElementById('dropZone');
+dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('dragover'); });
+dz.addEventListener('dragleave', () => dz.classList.remove('dragover'));
+dz.addEventListener('drop', e => {
+  e.preventDefault(); dz.classList.remove('dragover');
+  if (e.dataTransfer.files.length) {
+    selectedFile = e.dataTransfer.files[0];
+    const r = new FileReader();
+    r.onload = ev => { document.getElementById('previewImg').src = ev.target.result; document.getElementById('previewImg').style.display = 'block'; };
+    r.readAsDataURL(selectedFile);
+    updateBtn();
   }
+});
+
+// QQ photo drop
+const qqdz = document.getElementById('qqDropZone');
+if (qqdz) {
+  qqdz.addEventListener('dragover', e => { e.preventDefault(); qqdz.classList.add('dragover'); });
+  qqdz.addEventListener('dragleave', () => qqdz.classList.remove('dragover'));
+  qqdz.addEventListener('drop', e => {
+    e.preventDefault(); qqdz.classList.remove('dragover');
+    if (e.dataTransfer.files.length) {
+      qqPhotoFile = e.dataTransfer.files[0];
+      const r = new FileReader();
+      r.onload = ev => { document.getElementById('qqPreviewImg').src = ev.target.result; document.getElementById('qqPreviewImg').style.display = 'block'; };
+      r.readAsDataURL(qqPhotoFile);
+      updateBtn();
+    }
+  });
 }
 
-// ===== QQ Show =====
+// ======================================================
+// QQ SHOW MODE
+// ======================================================
+let qqMode = 'text';
+let qqPhotoFile = null;
+
+function switchQQMode(mode) {
+  qqMode = mode;
+  document.getElementById('qqTextBtn').classList.toggle('active', mode === 'text');
+  document.getElementById('qqPhotoBtn').classList.toggle('active', mode === 'photo');
+  document.getElementById('qqTextMode').style.display = mode === 'text' ? 'block' : 'none';
+  document.getElementById('qqPhotoMode').style.display = mode === 'photo' ? 'block' : 'none';
+  updateBtn();
+}
+
+function handleQQFile(input) {
+  qqPhotoFile = input.files[0];
+  if (qqPhotoFile) {
+    const r = new FileReader();
+    r.onload = e => { const img = document.getElementById('qqPreviewImg'); img.src = e.target.result; img.style.display = 'block'; };
+    r.readAsDataURL(qqPhotoFile);
+  }
+  updateBtn();
+}
+
+// ======================================================
+// CATALOG — loaded once
+// ======================================================
+let catalog = null;
+let dressUpComposition = {};
+let dressUpCategories = [];
+
 async function loadCatalog() {
+  if (catalog) return catalog;
   try {
     const resp = await fetch('asset-catalog.json');
     catalog = await resp.json();
-    renderAssets();
-  } catch (err) {
-    console.error('Failed to load catalog:', err);
+    return catalog;
+  } catch(e) {
+    console.error('Failed to load asset catalog:', e);
+    return null;
   }
 }
 
-function renderAssets() {
-  if (!catalog) return;
-  const section = document.getElementById('asset-section');
-  const categories = ['face', 'hair', 'outfit', 'accessory', 'background'];
+const CAT_NAMES = {
+  'front-hair': '前发型', 'back-hair': '后发型', 'makeup': '妆容',
+  'outfit': '套装', 'top': '上装', 'bottom': '下装',
+  'headwear': '帽饰', 'head-set': '发型配饰', 'glasses': '眼镜墨镜',
+  'face-decor': '面部装饰', 'earrings': '耳环', 'neckwear': '项链',
+  'backgrounds': '背景', 'background-decor': '背景装饰', 'frame': '相框',
+  'companion': '陪伴', 'sparkle': '特效', 'wings': '翅膀',
+  'vehicle': '车', 'text': '文字装饰', 'other-accessories': '其他配饰'
+};
+function catName(cat) { return CAT_NAMES[cat] || cat; }
 
-  categories.forEach(cat => {
-    const items = catalog[cat];
-    if (!items || !items.length) return;
+// Default composition — one random item per major category
+function buildDefaultComposition(data) {
+  const comp = {};
+  const majorCats = ['front-hair', 'makeup', 'outfit', 'backgrounds'];
+  majorCats.forEach(cat => {
+    const items = data[cat];
+    if (items && items.length > 0) {
+      comp[cat] = items[Math.floor(Math.random() * items.length)];
+    }
+  });
+  // Optional accessories — 30% chance each
+  const optCats = ['headwear', 'glasses', 'neckwear', 'earrings', 'sparkle', 'wings', 'companion'];
+  optCats.forEach(cat => {
+    const items = data[cat];
+    if (items && items.length > 0 && Math.random() < 0.3) {
+      comp[cat] = items[Math.floor(Math.random() * items.length)];
+    }
+  });
+  return comp;
+}
 
-    const div = document.createElement('div');
-    div.className = 'asset-category';
-    div.innerHTML = `<h3>${cat}</h3>`;
+// ======================================================
+// AI DESCRIPTION → KEYWORD MATCHING for QQ Show
+// ======================================================
+function matchAssetsFromDescription(description, catalogData) {
+  const desc = description.toLowerCase();
+  const comp = {};
 
-    const grid = document.createElement('div');
-    grid.className = 'asset-grid';
+  // Hair keywords
+  const hairKeywords = {
+    '粉色': '粉', '红': '红', '紫': '紫', '蓝': '蓝', '绿': '绿',
+    '金': '金', '白': '白', '黑': '黑', '棕': '棕', '亚麻': '亚麻',
+    '双马尾': '马尾', '马尾': '马尾', '短发': '短发', '长发': '长发',
+    '卷发': '卷发', '直发': '直发', '辫子': '辫', '刘海': '刘海',
+    'twin tails': '马尾', 'ponytail': '马尾', 'short hair': '短发',
+    'long hair': '长发', 'pink': '粉', 'red': '红', 'purple': '紫',
+    'blue': '蓝', 'green': '绿', 'blonde': '金', 'white': '白',
+    'black': '黑', 'brown': '棕'
+  };
 
-    items.slice(0, 12).forEach(item => {
-      const img = document.createElement('img');
-      img.className = 'asset-item';
-      img.src = `assets/${cat}/${item.file}`;
-      img.alt = item.name || cat;
-      img.title = item.name || cat;
-      img.addEventListener('click', () => {
-        // Toggle selection
-        if (selectedAssets[cat] === item.file) {
-          delete selectedAssets[cat];
-          img.classList.remove('selected');
-        } else {
-          // Deselect others in same category
-          grid.querySelectorAll('.asset-item').forEach(i => i.classList.remove('selected'));
-          selectedAssets[cat] = item.file;
-          img.classList.add('selected');
-        }
-      });
-      grid.appendChild(img);
-    });
+  // Outfit keywords
+  const outfitKeywords = {
+    '连衣裙': '裙', '裙子': '裙', 'dress': '裙',
+    't恤': 'T恤', 't-shirt': 'T恤', 'shirt': '衫',
+    '西装': '西装', 'suit': '西装',
+    '校服': '校服', 'uniform': '校服',
+    '婚纱': '婚纱', 'wedding': '婚纱',
+    '运动': '运动', 'sport': '运动',
+    '水手服': '水手', 'sailor': '水手',
+    '旗袍': '旗袍', 'cosplay': 'cos',
+    '公主': '公主', 'princess': '公主',
+    '女仆': '女仆', 'maid': '女仆'
+  };
 
-    div.appendChild(grid);
-    section.appendChild(div);
+  // Background keywords
+  const bgKeywords = {
+    '星空': '星', 'stars': '星', '夜空': '星',
+    '花': '花', 'flower': '花',
+    '海': '海', 'ocean': '海', '海': '海',
+    '云': '云', 'cloud': '云',
+    '彩虹': '彩虹', 'rainbow': '彩虹',
+    '粉': '粉', 'pink': '粉',
+    '紫': '紫', 'purple': '紫',
+    '蓝': '蓝', 'blue': '蓝'
+  };
+
+  // Accessory keywords
+  const accKeywords = {
+    '皇冠': 'headwear', 'crown': 'headwear',
+    '眼镜': 'glasses', 'sunglasses': 'glasses',
+    '项链': 'neckwear', 'necklace': 'neckwear',
+    '耳环': 'earrings', 'earrings': 'earrings',
+    '翅膀': 'wings', 'wings': 'wings',
+    '猫': 'companion', 'cat': 'companion',
+    '兔': 'companion', 'rabbit': 'companion',
+    '蝴蝶': 'sparkle', 'butterfly': 'sparkle'
+  };
+
+  // Match front hair
+  if (catalogData['front-hair']) {
+    let bestMatch = null;
+    let bestScore = 0;
+    for (const item of catalogData['front-hair']) {
+      let score = 0;
+      const itemText = (item.name + ' ' + (item.tags||[]).join(' ')).toLowerCase();
+      for (const [kw, pat] of Object.entries(hairKeywords)) {
+        if (desc.includes(kw) && itemText.includes(pat)) score++;
+      }
+      if (score > bestScore) { bestScore = score; bestMatch = item; }
+    }
+    if (bestMatch && bestScore > 0) comp['front-hair'] = bestMatch;
+    else comp['front-hair'] = catalogData['front-hair'][Math.floor(Math.random() * catalogData['front-hair'].length)];
+  }
+
+  // Match outfit
+  if (catalogData['outfit']) {
+    let bestMatch = null;
+    let bestScore = 0;
+    for (const item of catalogData['outfit']) {
+      let score = 0;
+      const itemText = (item.name + ' ' + (item.tags||[]).join(' ')).toLowerCase();
+      for (const [kw, pat] of Object.entries(outfitKeywords)) {
+        if (desc.includes(kw) && itemText.includes(pat)) score++;
+      }
+      if (score > bestScore) { bestScore = score; bestMatch = item; }
+    }
+    if (bestMatch && bestScore > 0) comp['outfit'] = bestMatch;
+    else comp['outfit'] = catalogData['outfit'][Math.floor(Math.random() * catalogData['outfit'].length)];
+  }
+
+  // Match background
+  if (catalogData['backgrounds']) {
+    let bestMatch = null;
+    let bestScore = 0;
+    for (const item of catalogData['backgrounds']) {
+      let score = 0;
+      const itemText = (item.name + ' ' + (item.tags||[]).join(' ')).toLowerCase();
+      for (const [kw, pat] of Object.entries(bgKeywords)) {
+        if (desc.includes(kw) && itemText.includes(pat)) score++;
+      }
+      if (score > bestScore) { bestScore = score; bestMatch = item; }
+    }
+    if (bestMatch && bestScore > 0) comp['backgrounds'] = bestMatch;
+    else comp['backgrounds'] = catalogData['backgrounds'][Math.floor(Math.random() * catalogData['backgrounds'].length)];
+  }
+
+  // Makeup — random
+  if (catalogData['makeup'] && catalogData['makeup'].length > 0) {
+    comp['makeup'] = catalogData['makeup'][Math.floor(Math.random() * catalogData['makeup'].length)];
+  }
+
+  // Accessories from keywords
+  for (const [kw, cat] of Object.entries(accKeywords)) {
+    if (desc.includes(kw) && catalogData[cat] && catalogData[cat].length > 0) {
+      comp[cat] = catalogData[cat][Math.floor(Math.random() * catalogData[cat].length)];
+    }
+  }
+
+  // Randomly add some optional accessories if not already matched
+  const optCats = ['headwear', 'glasses', 'neckwear', 'earrings', 'sparkle', 'wings', 'companion'];
+  optCats.forEach(cat => {
+    if (!comp[cat] && catalogData[cat] && catalogData[cat].length > 0 && Math.random() < 0.2) {
+      comp[cat] = catalogData[cat][Math.floor(Math.random() * catalogData[cat].length)];
+    }
+  });
+
+  // back-hair — match by color from front-hair
+  if (catalogData['back-hair'] && comp['front-hair']) {
+    const frontName = comp['front-hair'].name || '';
+    let matchedBack = null;
+    for (const item of catalogData['back-hair']) {
+      // Match color prefix
+      const frontColor = frontName.match(/亚麻\w/)?.[0] || '';
+      if (frontColor && item.name.includes(frontColor)) { matchedBack = item; break; }
+    }
+    if (matchedBack) comp['back-hair'] = matchedBack;
+    else comp['back-hair'] = catalogData['back-hair'][Math.floor(Math.random() * catalogData['back-hair'].length)];
+  }
+
+  return comp;
+}
+
+// ======================================================
+// COMPOSE QQ SHOW LOCALLY (Canvas API)
+// ======================================================
+async function composeQQShow(composition) {
+  const canvas = document.createElement('canvas');
+  canvas.width = 200;
+  canvas.height = 250;
+  const ctx = canvas.getContext('2d');
+
+  // Clear to transparent
+  ctx.clearRect(0, 0, 200, 250);
+
+  // Layer order: background → back-hair → body/outfit → front-hair → makeup → accessories
+  const layerOrder = [
+    'backgrounds', 'back-hair', 'outfit', 'top', 'bottom',
+    'makeup', 'front-hair', 'headwear', 'head-set', 'glasses',
+    'face-decor', 'earrings', 'neckwear', 'background-decor',
+    'frame', 'companion', 'sparkle', 'wings', 'vehicle', 'text'
+  ];
+
+  // Track loaded images
+  const loadedImages = [];
+
+  for (const cat of layerOrder) {
+    const item = composition[cat];
+    if (!item || !item.file) continue;
+
+    const imgSrc = 'assets/' + item.file;
+    try {
+      const img = await loadImage(imgSrc);
+      loadedImages.push(img);
+      ctx.drawImage(img, 0, 0, 200, 250);
+    } catch(e) {
+      console.warn('Failed to load asset:', imgSrc, e);
+    }
+  }
+
+  return canvas;
+}
+
+function loadImage(src) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error('Failed to load: ' + src));
+    img.src = src;
   });
 }
 
-async function doCompose() {
-  if (!apiKey) { document.getElementById('api-modal').style.display = 'flex'; return; }
+// ======================================================
+// DRESS-UP MODAL
+// ======================================================
+let dressUpUid = '';
 
-  const loading = document.getElementById('loading-compose');
-  const result = document.getElementById('result-compose');
-  const download = document.getElementById('download-compose');
+async function openDressUp(uid, composition) {
+  dressUpUid = uid;
+  dressUpComposition = { ...composition };
 
-  loading.style.display = 'block';
-  result.style.display = 'none';
-  download.style.display = 'none';
+  const data = await loadCatalog();
+  if (!data) { alert('无法加载素材目录'); return; }
+
+  dressUpCategories = Object.keys(data).filter(cat => data[cat] && data[cat].length > 0);
+
+  const catButtons = dressUpCategories.map(cat => {
+    const current = composition[cat];
+    const label = current ? current.name : '无';
+    return `<button class="style-btn" data-cat="${cat}" onclick="loadCategory('${cat}')" style="font-size:11px;padding:8px 4px;">
+      ${catName(cat)}<br><span style="font-size:10px;opacity:0.7;">${label}</span>
+    </button>`;
+  }).join('');
+
+  // Get preview image source
+  const previewSrc = document.querySelector('#resultArea img')?.src || '';
+
+  const modal = document.createElement('div');
+  modal.id = 'dressUpModal';
+  modal.style.cssText = 'position:fixed;inset:0;z-index:3000;background:rgba(0,0,0,0.9);display:flex;flex-direction:column;overflow-y:auto;';
+  modal.innerHTML = `
+    <div style="background:#1a0030;padding:12px;display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid var(--purple);position:sticky;top:0;z-index:1;">
+      <span style="font-family:var(--pixel-cn);font-size:16px;color:var(--cyan);">🎨 穿搭工坊</span>
+      <button onclick="closeDressUp()" style="background:var(--pink);color:white;border:none;padding:6px 12px;font-family:var(--pixel-cn);cursor:pointer;">✕ 关闭</button>
+    </div>
+    <div style="display:flex;flex:1;overflow:hidden;">
+      <div style="width:200px;background:#0d0020;padding:8px;overflow-y:auto;border-right:1px solid #333;">
+        <div style="font-size:11px;color:#888;margin-bottom:8px;font-family:var(--pixel-cn);">点击分类替换</div>
+        ${catButtons}
+      </div>
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;padding:16px;">
+        <canvas id="dressUpCanvas" width="200" height="250" style="max-width:300px;max-height:300px;border:2px solid var(--purple);image-rendering:pixelated;"></canvas>
+        <div style="margin-top:8px;">
+          <button class="download-btn" onclick="downloadDressUp()" style="margin-right:8px;">💾 下载</button>
+        </div>
+        <div id="dressUpItems" style="margin-top:16px;width:100%;max-width:600px;display:grid;grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:8px;"></div>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+
+  // Render the composition
+  await renderDressUpPreview();
+}
+
+async function renderDressUpPreview() {
+  const canvas = document.getElementById('dressUpCanvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, 200, 250);
+
+  const layerOrder = [
+    'backgrounds', 'back-hair', 'outfit', 'top', 'bottom',
+    'makeup', 'front-hair', 'headwear', 'head-set', 'glasses',
+    'face-decor', 'earrings', 'neckwear', 'background-decor',
+    'frame', 'companion', 'sparkle', 'wings', 'vehicle', 'text'
+  ];
+
+  for (const cat of layerOrder) {
+    const item = dressUpComposition[cat];
+    if (!item || !item.file) continue;
+    try {
+      const img = await loadImage('assets/' + item.file);
+      ctx.drawImage(img, 0, 0, 200, 250);
+    } catch(e) {
+      console.warn('Preview load failed:', item.file);
+    }
+  }
+}
+
+async function loadCategory(cat) {
+  const data = await loadCatalog();
+  if (!data || !data[cat]) return;
+  const items = data[cat];
+  const container = document.getElementById('dressUpItems');
+
+  container.innerHTML = items.map(item => `
+    <div onclick="swapItem('${cat}', ${JSON.stringify(item).replace(/"/g, '&quot;')})"
+         style="cursor:pointer;text-align:center;padding:8px;background:${dressUpComposition[cat]?.file === item.file ? 'var(--purple)' : '#1a0030'};border:2px solid ${dressUpComposition[cat]?.file === item.file ? 'var(--pink)' : '#333'};border-radius:4px;">
+      <img src="assets/${item.file}" class="qq-item-thumb" style="width:60px;height:60px;object-fit:contain;" onerror="this.style.display='none'">
+      <div style="font-size:11px;color:white;font-family:var(--pixel-cn);margin-top:4px;">${item.name}</div>
+    </div>
+  `).join('');
+}
+
+async function swapItem(cat, itemObj) {
+  if (typeof itemObj === 'string') itemObj = JSON.parse(itemObj);
+  dressUpComposition[cat] = itemObj;
+
+  beep(440, 0.08);
+
+  // Re-render preview
+  await renderDressUpPreview();
+
+  // Refresh category list
+  loadCategory(cat);
+}
+
+function downloadDressUp() {
+  const canvas = document.getElementById('dressUpCanvas');
+  if (!canvas) return;
+  const link = document.createElement('a');
+  link.download = 'qq-show-' + dressUpUid + '.png';
+  link.href = canvas.toDataURL('image/png');
+  link.click();
+  beep(880, 0.08);
+}
+
+function closeDressUp() {
+  const modal = document.getElementById('dressUpModal');
+  if (modal) modal.remove();
+  beep(330, 0.08);
+}
+
+// ======================================================
+// MAIN GENERATE — CLIENT SIDE
+// ======================================================
+async function generate() {
+  const btn = document.getElementById('generateBtn');
+  const area = document.getElementById('resultArea');
+  btn.disabled = true;
+  btn.textContent = '⏳ 生成中...';
+
+  beep(523, 0.15, 0);
+  beep(659, 0.15, 0.1);
+  beep(784, 0.15, 0.2);
+
+  const isQQ = currentMode === 'qqshow';
+  area.innerHTML = `<div class="loading-box">
+    <div class="loading-bar-outer"><div class="loading-bar-inner" id="loadBar"></div></div>
+    <div class="loading-text" id="loadText">${isQQ ? '✦ 正在搭配QQ秀...' : '✦ 正在生成...'}</div>
+    <div class="loading-hint">${isQQ ? '从素材库中智能选搭，请等待 ✦' : '本地处理中，请等待 ✦'}</div>
+  </div>`;
+
+  // Cycling hints
+  const pixelHints = ['分析图像特征...', '映射像素网格...', '量化调色板...', '应用抖动算法...', '渲染CRT效果...', '几乎好了...'];
+  const qqHints = ['分析描述特征...', '匹配发型...', '挑选服装...', '搭配配饰...', '选择背景...', '合成中...'];
+  const qqPhotoHints = ['分析照片特征...', '识别颜色倾向...', '匹配风格...', '挑选搭配...', '合成QQ秀...'];
+  const textHints = ['发送请求至 Agnes AI...', '等待AI生成...', '正在下载图像...', '几乎好了...'];
+  let hints;
+  if (isQQ) hints = (qqMode === 'photo') ? qqPhotoHints : qqHints;
+  else if (currentMode === 'text') hints = textHints;
+  else hints = pixelHints;
+
+  let hintIdx = 0;
+  const hintTimer = setInterval(() => {
+    hintIdx = (hintIdx + 1) % hints.length;
+    const el = document.getElementById('loadText');
+    if (el) el.textContent = '✦ ' + hints[hintIdx];
+  }, 3000);
 
   try {
-    // Create composition from selected assets
-    const canvas = document.createElement('canvas');
-    canvas.width = 400;
-    canvas.height = 400;
-    const ctx = canvas.getContext('2d');
-
-    // Load and draw selected assets
-    const assetPromises = Object.entries(selectedAssets).map(([cat, file]) => {
-      return new Promise((resolve) => {
-        const img = new Image();
-        img.onload = () => { ctx.drawImage(img, 0, 0, 400, 400); resolve(); };
-        img.onerror = resolve;
-        img.src = `assets/${cat}/${file}`;
+    if (currentMode === 'upload' && selectedFile) {
+      // ===== CLIENT-SIDE PIXEL ART =====
+      const resultCanvas = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = e => {
+          const img = new Image();
+          img.onload = () => {
+            try {
+              const canvas = window.PixelArt.pixelArt(img, selectedStyle);
+              resolve(canvas);
+            } catch(err) { reject(err); }
+          };
+          img.onerror = () => reject(new Error('图像加载失败'));
+          img.src = e.target.result;
+        };
+        reader.onerror = () => reject(new Error('文件读取失败'));
+        reader.readAsDataURL(selectedFile);
       });
-    });
 
-    await Promise.all(assetPromises);
+      clearInterval(hintTimer);
 
-    // Pixelate the composition
-    const compImg = new Image();
-    compImg.src = canvas.toDataURL();
-    await new Promise(r => compImg.onload = r);
+      const url = resultCanvas.toDataURL('image/png');
+      area.innerHTML = `<img src="${url}" style="max-width:100%;border:3px solid var(--purple);image-rendering:pixelated;"><br>
+        <a class="download-btn" href="${url}" download="pixel-dream.png">💾 下载图片</a>`;
 
-    const pixelCanvas = PixelArt.pixelArt(compImg, selectedStyle);
-    result.src = pixelCanvas.toDataURL('image/png');
-    result.style.display = 'block';
-    download.href = result.src;
-    download.download = `qqshow-${selectedStyle}-${Date.now()}.png`;
-    download.style.display = 'inline-block';
-  } catch (err) {
-    alert('QQ秀生成失败: ' + err.message);
-  } finally {
-    loading.style.display = 'none';
+    } else if (currentMode === 'text') {
+      // ===== AGNES AI TEXT-TO-IMAGE =====
+      const apiKey = localStorage.getItem('agnes_api_key');
+      if (!apiKey) {
+        clearInterval(hintTimer);
+        showApiKeyModal();
+        btn.disabled = false; btn.textContent = '✦ 开始生成 ✦';
+        area.innerHTML = '';
+        updateBtn();
+        return;
+      }
+
+      const desc = document.getElementById('descInput').value.trim();
+      const resp = await fetch('https://apihub.agnes-ai.com/v1/images/generations', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + apiKey
+        },
+        body: JSON.stringify({
+          prompt: `pixel art style, ${desc}, retro game aesthetic, 8-bit`,
+          model: 'flux',
+          n: 1,
+          size: '1024x1024'
+        })
+      });
+
+      if (!resp.ok) {
+        const errData = await resp.json().catch(() => ({}));
+        throw new Error(errData.error?.message || `API Error ${resp.status}`);
+      }
+
+      const data = await resp.json();
+      const imgUrl = data.data?.[0]?.url || data.data?.[0]?.b64_json;
+
+      clearInterval(hintTimer);
+
+      if (imgUrl) {
+        let src = imgUrl;
+        if (imgUrl.startsWith('data:') || imgUrl.length > 200) {
+          // Likely base64
+          src = 'data:image/png;base64,' + imgUrl;
+        }
+        area.innerHTML = `<img src="${src}" style="max-width:100%;border:3px solid var(--purple);image-rendering:pixelated;"><br>
+          <a class="download-btn" href="${src}" download="pixel-dream-ai.png">💾 下载图片</a>`;
+      } else {
+        throw new Error('未返回图片数据');
+      }
+
+    } else if (currentMode === 'qqshow') {
+      // ===== CLIENT-SIDE QQ SHOW COMPOSITION =====
+      const data = await loadCatalog();
+      if (!data) throw new Error('无法加载素材目录');
+
+      let composition;
+      let analysisText = '';
+
+      if (qqMode === 'photo' && qqPhotoFile) {
+        // Photo mode: use AI to analyze, then match locally
+        const apiKey = localStorage.getItem('agnes_api_key');
+        if (!apiKey) {
+          clearInterval(hintTimer);
+          showApiKeyModal();
+          btn.disabled = false; btn.textContent = '✦ 开始生成 ✦';
+          area.innerHTML = '';
+          updateBtn();
+          return;
+        }
+
+        const base64 = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = e => resolve(e.target.result);
+          reader.onerror = reject;
+          reader.readAsDataURL(qqPhotoFile);
+        });
+
+        // Ask AI to describe the photo for matching
+        const aiResp = await fetch('https://apihub.agnes-ai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + apiKey
+          },
+          body: JSON.stringify({
+            model: 'gemini-2.0-flash',
+            messages: [{
+              role: 'user',
+              content: [
+                { type: 'text', text: 'Describe this person in Chinese keywords for matching QQ Show assets. Output ONLY comma-separated keywords like: 粉色,双马尾,连衣裙,星空背景. No explanation needed.' },
+                { type: 'image_url', image_url: { url: base64 } }
+              ]
+            }],
+            max_tokens: 100
+          })
+        });
+
+        if (aiResp.ok) {
+          const aiData = await aiResp.json();
+          const desc = aiData.choices?.[0]?.message?.content || '';
+          analysisText = '🔍 AI识别：' + desc;
+          composition = matchAssetsFromDescription(desc, data);
+        } else {
+          composition = buildDefaultComposition(data);
+          analysisText = '🔍 使用默认搭配';
+        }
+
+      } else {
+        // Text mode: keyword matching
+        const desc = document.getElementById('qqInput').value.trim();
+        composition = matchAssetsFromDescription(desc, data);
+      }
+
+      // Compose the image locally
+      const canvas = await composeQQShow(composition);
+      const uid = 'local_' + Date.now();
+      const url = canvas.toDataURL('image/png');
+
+      clearInterval(hintTimer);
+
+      const catList = Object.values(composition).map(v => v.name).filter(Boolean).join(' · ');
+      area.innerHTML = `
+        <img src="${url}" style="max-width:100%;border:3px solid var(--purple);"><br>
+        ${analysisText ? `<div style="margin:8px 16px;padding:8px;background:#1a0030;border:1px solid #333;font-size:12px;color:#aaa;font-family:var(--pixel-cn);white-space:pre-line;">${analysisText}</div>` : ''}
+        <div style="margin-top:12px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap;">
+          <a class="download-btn" href="${url}" download="qqshow-${uid}.png">💾 下载QQ秀</a>
+          <button class="download-btn" style="background:var(--purple);color:white;" onclick="openDressUp('${uid}', ${JSON.stringify(composition).replace(/'/g, "\\'").replace(/"/g, '&quot;')})">🎨 去搭配</button>
+        </div>
+        <div style="margin-top:8px;font-size:12px;color:#888;font-family:var(--pixel-cn);">${catList}</div>`;
+    }
+  } catch (e) {
+    clearInterval(hintTimer);
+    area.innerHTML = `<p style="color:var(--pink);font-family:var(--pixel-cn);font-size:13px;">ERROR: ${e.message}</p>`;
   }
+
+  btn.disabled = false;
+  btn.textContent = '✦ 开始生成 ✦';
+  updateBtn();
 }
 
-// ===== API Key =====
+// ======================================================
+// BGM
+// ======================================================
+let bgmPlaying = false;
+
+function startBGM() {
+  const audio = document.getElementById('bgmAudio');
+  audio.play().catch(() => {});
+  bgmPlaying = true;
+  document.getElementById('bgmBtn').textContent = '🔊';
+}
+
+function stopBGM() {
+  const audio = document.getElementById('bgmAudio');
+  audio.pause();
+  audio.currentTime = 0;
+  bgmPlaying = false;
+  document.getElementById('bgmBtn').textContent = '🔇';
+}
+
+function toggleBGM() {
+  if (bgmPlaying) stopBGM(); else startBGM();
+  beep(bgmPlaying ? 660 : 330, 0.08);
+}
+
+// ======================================================
+// API KEY MODAL
+// ======================================================
+function showApiKeyModal() {
+  document.getElementById('apiKeyModal').style.display = 'flex';
+  document.getElementById('apiKeyInput').value = localStorage.getItem('agnes_api_key') || '';
+  document.getElementById('apiKeyError').style.display = 'none';
+}
+
+function closeApiKeyModal() {
+  document.getElementById('apiKeyModal').style.display = 'none';
+}
+
 function saveApiKey() {
-  apiKey = document.getElementById('api-key-input').value.trim();
-  if (apiKey) {
-    localStorage.setItem('agnes_api_key', apiKey);
-    document.getElementById('api-modal').style.display = 'none';
+  const key = document.getElementById('apiKeyInput').value.trim();
+  if (!key) {
+    document.getElementById('apiKeyError').textContent = '请输入 API Key';
+    document.getElementById('apiKeyError').style.display = 'block';
+    return;
   }
+  localStorage.setItem('agnes_api_key', key);
+  document.getElementById('apiKeyModal').style.display = 'none';
+  beep(880, 0.08);
 }
+
+// ======================================================
+// PRELOAD CATALOG
+// ======================================================
+loadCatalog().then(data => {
+  if (data) {
+    const count = Object.values(data).reduce((sum, arr) => sum + (Array.isArray(arr) ? arr.length : 0), 0);
+    console.log(`✦ PIXEL DREAM — loaded ${count} assets from ${Object.keys(data).length} categories`);
+  }
+});
 </script>
 </body>
 </html>
