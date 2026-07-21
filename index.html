@@ -793,7 +793,7 @@ async function generate() {
   // Cycling hints
   const pixelHints = ['分析图像特征...', '映射像素网格...', '量化调色板...', '应用抖动算法...', '渲染CRT效果...', '几乎好了...'];
   const qqHints = ['分析描述特征...', '匹配发型...', '挑选服装...', '搭配配饰...', '选择背景...', '合成中...'];
-  const qqPhotoHints = ['分析照片特征...', '识别颜色倾向...', '匹配风格...', '挑选搭配...', '合成QQ秀...'];
+  const qqPhotoHints = ['AI识别照片特征...', '本地筛选匹配素材...', 'AI智能选搭中...', '合成QQ秀...'];
   const textHints = ['发送请求至 Agnes AI...', '等待AI生成...', '正在下载图像...', '几乎好了...'];
   let hints;
   if (isQQ) hints = (qqMode === 'photo') ? qqPhotoHints : qqHints;
@@ -891,7 +891,7 @@ async function generate() {
       let analysisText = '';
 
       if (qqMode === 'photo' && qqPhotoFile) {
-        // Photo mode: use AI to analyze, then match locally
+        // Photo mode: AI分析 → 本地过滤 → AI选搭配
         const apiKey = localStorage.getItem('agnes_api_key');
         if (!apiKey) {
           clearInterval(hintTimer);
@@ -909,7 +909,7 @@ async function generate() {
           reader.readAsDataURL(qqPhotoFile);
         });
 
-        // AI分析照片特征 — 结构化输出
+        // Step 1: AI分析照片特征
         const aiResp = await fetch('https://apihub.agnes-ai.com/v1/chat/completions', {
           method: 'POST',
           headers: {
@@ -922,7 +922,7 @@ async function generate() {
               role: 'user',
               content: [
                 { type: 'text', text: `分析这张照片中的人物特征，用于生成QQ秀形象。请严格按以下JSON格式输出，不要多余文字：
-{"gender":"男/女","hair":"发型描述","hairColor":"发色","style":"风格","clothes":"服装描述","clothesColor":"服装颜色","accessories":"配饰（没有则写无）","mood":"氛围","keywords":"逗号分隔的中文关键词，用于匹配素材库，包含上述所有特征"}` },
+{"gender":"男/女","hair":"发型描述(如:长发/短发/双马尾/卷发/直发/马尾/盘发)","hairColor":"发色(如:黑/棕/金/粉/紫/蓝/红/亚麻/白)","style":"风格(如:清新/酷帅/甜美/文艺/运动/复古/优雅)","clothes":"服装描述(如:T恤/连衣裙/西装/卫衣/衬衫/校服)","clothesColor":"服装颜色","accessories":"配饰(没有则写无)","mood":"氛围(如:阳光/温柔/冷酷/可爱/酷炫)"}` },
                 { type: 'image_url', image_url: { url: base64 } }
               ]
             }],
@@ -930,29 +930,150 @@ async function generate() {
           })
         });
 
+        let analysis = { gender:'', hair:'', hairColor:'', style:'', clothes:'', clothesColor:'', accessories:'', mood:'' };
+
         if (aiResp.ok) {
           const aiData = await aiResp.json();
           const raw = aiData.choices?.[0]?.message?.content || '';
-          // Try parse JSON from response
-          let analysis = null;
           try {
             const jsonMatch = raw.match(/\{[\s\S]*\}/);
             if (jsonMatch) analysis = JSON.parse(jsonMatch[0]);
           } catch(e) {}
-          
-          if (analysis) {
-            const kw = analysis.keywords || raw;
-            composition = matchAssetsFromDescription(kw, data);
-            analysisText = JSON.stringify(analysis);
-          } else {
-            // Fallback: treat raw text as keywords
-            composition = matchAssetsFromDescription(raw, data);
-            analysisText = JSON.stringify({keywords: raw, gender:'', hair:'', hairColor:'', style:'', clothes:'', clothesColor:'', accessories:'', mood:''});
-          }
-        } else {
-          composition = buildDefaultComposition(data);
-          analysisText = JSON.stringify({keywords:'', gender:'', hair:'', hairColor:'', style:'', clothes:'', clothesColor:'', accessories:'', mood:'', error:true});
         }
+
+        // Step 2: 本地根据特征过滤素材库，缩小范围
+        function filterCatalog(cat, items, features) {
+          if (!items || items.length === 0) return [];
+          const scored = items.map(item => {
+            const name = (item.name || '').toLowerCase();
+            let score = 0;
+            // 发色匹配
+            if (features.hairColor && name.includes(features.hairColor)) score += 3;
+            // 发型匹配
+            if (features.hair) {
+              const hairKw = features.hair.toLowerCase();
+              if (hairKw.includes('长发') && (name.includes('长发') || name.includes('长尾'))) score += 2;
+              if (hairKw.includes('短发') && name.includes('短发')) score += 2;
+              if (hairKw.includes('马尾') && name.includes('马尾')) score += 2;
+              if (hairKw.includes('卷发') && name.includes('卷')) score += 2;
+              if (hairKw.includes('直发') && name.includes('直发')) score += 2;
+              if (hairKw.includes('双马尾') && name.includes('双马尾')) score += 3;
+              if (hairKw.includes('盘发') && name.includes('盘发')) score += 2;
+            }
+            // 服装匹配
+            if (features.clothes && cat === 'outfit') {
+              const clothKw = features.clothes.toLowerCase();
+              if (clothKw.includes('t恤') && (name.includes('t恤') || name.includes('T恤'))) score += 3;
+              if (clothKw.includes('连衣裙') && name.includes('裙')) score += 3;
+              if (clothKw.includes('西装') && name.includes('西装')) score += 3;
+              if (clothKw.includes('卫衣') && name.includes('卫衣')) score += 3;
+              if (clothKw.includes('衬衫') && name.includes('衫')) score += 3;
+              if (clothKw.includes('校服') && name.includes('校服')) score += 3;
+              if (features.clothesColor && name.includes(features.clothesColor)) score += 2;
+            }
+            // 背景匹配 - 根据风格
+            if (cat === 'backgrounds') {
+              if (features.mood) {
+                const mood = features.mood.toLowerCase();
+                if (mood.includes('阳光') && (name.includes('晴') || name.includes('阳'))) score += 2;
+                if (mood.includes('温柔') && (name.includes('樱') || name.includes('花'))) score += 2;
+                if (mood.includes('冷酷') && (name.includes('暗') || name.includes('夜'))) score += 2;
+                if (mood.includes('可爱') && (name.includes('粉') || name.includes('甜'))) score += 2;
+                if (mood.includes('酷炫') && (name.includes('赛博') || name.includes('炫'))) score += 2;
+              }
+              if (features.style) {
+                const st = features.style.toLowerCase();
+                if (st.includes('清新') && (name.includes('晴') || name.includes('绿'))) score += 2;
+                if (st.includes('复古') && (name.includes('复古') || name.includes('怀旧'))) score += 2;
+              }
+            }
+            // 妆容匹配
+            if (cat === 'makeup') {
+              if (features.style === '甜美' && (name.includes('甜') || name.includes('可爱'))) score += 2;
+              if (features.style === '酷帅' && (name.includes('酷') || name.includes('暗'))) score += 2;
+            }
+            return { item, score };
+          });
+          scored.sort((a, b) => b.score - a.score);
+          // Return top items: all with score > 0, plus some random from rest
+          const matched = scored.filter(s => s.score > 0).slice(0, 15).map(s => s.item);
+          if (matched.length < 5) {
+            // Add some random ones
+            const rest = scored.filter(s => s.score === 0);
+            for (let i = 0; i < 5 && rest.length > 0; i++) {
+              const idx = Math.floor(Math.random() * rest.length);
+              matched.push(rest.splice(idx, 1)[0].item);
+            }
+          }
+          return matched;
+        }
+
+        // Filter key categories
+        const filtered = {};
+        const keyCats = ['front-hair', 'outfit', 'backgrounds', 'makeup'];
+        const optCats = ['headwear', 'glasses', 'neckwear', 'earrings', 'sparkle', 'wings', 'companion'];
+        keyCats.forEach(cat => { filtered[cat] = filterCatalog(cat, data[cat], analysis); });
+        optCats.forEach(cat => { if (data[cat]) filtered[cat] = filterCatalog(cat, data[cat], analysis).slice(0, 8); });
+
+        // Build compact catalog for AI (name + file only)
+        const catalogBrief = {};
+        for (const [cat, items] of Object.entries(filtered)) {
+          catalogBrief[cat] = items.map(i => ({ n: i.name, f: i.file }));
+        }
+        const catalogStr = JSON.stringify(catalogBrief);
+
+        // Step 3: AI从精选列表中选搭配
+        const selResp = await fetch('https://apihub.agnes-ai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + apiKey
+          },
+          body: JSON.stringify({
+            model: 'agnes-2.0-flash',
+            messages: [{
+              role: 'user',
+              content: `你是一个QQ秀搭配专家。根据以下人物特征和可用素材，选出最匹配的搭配。
+
+人物特征：${JSON.stringify(analysis)}
+
+可用素材（JSON格式，key是分类，value是素材列表）：
+${catalogStr}
+
+请严格按以下JSON格式输出，只从提供的素材中选择，不要编造：
+{"front-hair":"选中的发型name","back-hair":"选中的后发型name或空","outfit":"选中的套装name","makeup":"选中的妆容name","backgrounds":"选中的背景name","headwear":"选中的帽饰name或空","glasses":"选中的眼镜name或空","neckwear":"选中的项链name或空","earrings":"选中的耳环name或空"}
+
+只输出JSON，不要其他文字。`
+            }],
+            max_tokens: 500
+          })
+        });
+
+        if (selResp.ok) {
+          const selData = await selResp.json();
+          const selRaw = selData.choices?.[0]?.message?.content || '';
+          try {
+            const selJson = selRaw.match(/\{[\s\S]*\}/);
+            if (selJson) {
+              const selected = JSON.parse(selJson[0]);
+              // Map selected names back to full items
+              for (const [cat, items] of Object.entries(filtered)) {
+                if (selected[cat]) {
+                  const match = items.find(i => i.name === selected[cat]);
+                  if (match) composition[cat] = match;
+                }
+              }
+            }
+          } catch(e) { console.warn('AI selection parse failed:', e); }
+        }
+
+        // Fallback: ensure at least major categories have items
+        if (!composition['front-hair'] && data['front-hair']) composition['front-hair'] = data['front-hair'][Math.floor(Math.random() * data['front-hair'].length)];
+        if (!composition['outfit'] && data['outfit']) composition['outfit'] = data['outfit'][Math.floor(Math.random() * data['outfit'].length)];
+        if (!composition['backgrounds'] && data['backgrounds']) composition['backgrounds'] = data['backgrounds'][Math.floor(Math.random() * data['backgrounds'].length)];
+        if (!composition['makeup'] && data['makeup']) composition['makeup'] = data['makeup'][Math.floor(Math.random() * data['makeup'].length)];
+
+        analysisText = JSON.stringify(analysis);
 
       } else {
         // Text mode: keyword matching
