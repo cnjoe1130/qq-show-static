@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>8bit 头像工坊</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&family=Press+Start+2P&family=VT323&display=swap');
+* { margin: 0; padding: 0; box-sizing: border-box; }
+:root {
+  --pink: #ff6ec7; --purple: #b967ff; --blue: #01cdfe; --cyan: #05ffa1;
+  --bg: #0a0015; --panel: rgba(20,10,40,0.9);
+  --pixel-font: 'Silkscreen', monospace;
+  --pixel-cn: 'VT323', monospace;
+}
+body {
+  background: var(--bg); color: #e0d0ff; font-family: var(--pixel-cn);
+  min-height: 100vh; padding: 16px;
+}
+.bg {
+  position: fixed; inset: 0; z-index: 0;
+  background:
+    radial-gradient(ellipse at 20% 50%, rgba(185,103,255,0.3) 0%, transparent 60%),
+    radial-gradient(ellipse at 80% 30%, rgba(255,110,199,0.2) 0%, transparent 50%),
+    linear-gradient(180deg, #0a0015 0%, #1a0030 50%, #0a0015 100%);
+}
+.crt {
+  position: fixed; inset: 0; z-index: 1000; pointer-events: none;
+  background: repeating-linear-gradient(0deg, rgba(0,0,0,0.15) 0px, rgba(0,0,0,0.15) 1px, transparent 1px, transparent 3px);
+}
+.container {
+  position: relative; z-index: 1; width: 100%; max-width: 700px; margin: 0 auto;
+}
+.header { text-align: center; padding: 20px 16px; }
+.header h1 {
+  font-family: var(--pixel-font); font-size: 22px;
+  background: linear-gradient(90deg, var(--pink), var(--purple), var(--blue), var(--cyan));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+}
+.header .sub { font-size: 16px; color: #888; margin-top: 4px; }
+
+/* Tabs */
+.tabs { display: flex; gap: 4px; margin: 16px; }
+.tab {
+  flex: 1; padding: 12px 8px; text-align: center; cursor: pointer;
+  font-family: var(--pixel-cn); font-size: 16px;
+  background: #333; color: #888; border: 2px solid #555; transition: all 0.2s;
+}
+.tab.active { background: var(--purple); color: white; border-color: var(--pink); }
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+
+/* Upload Zone */
+.upload-zone {
+  border: 3px dashed var(--purple); padding: 40px 20px; text-align: center;
+  cursor: pointer; margin: 16px; background: rgba(185,103,255,0.05); transition: all 0.3s;
+}
+.upload-zone:hover { border-color: var(--pink); background: rgba(255,110,199,0.1); }
+.upload-zone.dragover { border-color: var(--cyan); background: rgba(5,255,161,0.1); }
+
+/* Style Grid */
+.style-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; padding: 16px; }
+.style-btn {
+  font-family: var(--pixel-cn); font-size: 14px; padding: 12px 6px; cursor: pointer;
+  text-align: center; background: #333; color: #aaa; border: 2px solid #555; transition: all 0.2s;
+}
+.style-btn:hover { background: #444; }
+.style-btn.active { background: var(--purple); color: white; border-color: var(--pink); box-shadow: 0 0 12px rgba(185,103,255,0.5); }
+
+/* Buttons */
+.action-btn {
+  display: block; width: calc(100% - 32px); margin: 16px; padding: 14px;
+  font-family: var(--pixel-cn); font-size: 18px;
+  background: linear-gradient(90deg, var(--pink), var(--purple));
+  color: white; border: none; cursor: pointer; transition: all 0.3s;
+}
+.action-btn:hover { filter: brightness(1.2); transform: scale(1.02); }
+.action-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+/* Text Input */
+.text-input {
+  width: calc(100% - 32px); margin: 12px 16px; padding: 12px;
+  font-family: var(--pixel-cn); font-size: 16px;
+  background: rgba(20,10,40,0.8); color: var(--cyan);
+  border: 2px solid var(--purple); outline: none; resize: vertical; min-height: 60px;
+}
+.text-input:focus { border-color: var(--pink); box-shadow: 0 0 10px rgba(255,110,199,0.3); }
+
+/* Result Area */
+.result-area { padding: 16px; text-align: center; min-height: 100px; }
+.result-img { max-width: 300px; max-height: 300px; margin: 12px auto; border: 2px solid var(--blue); display: none; image-rendering: pixelated; }
+.loading { display: none; color: var(--cyan); animation: blink 1s step-end infinite; }
+@keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0; } }
+.download-btn {
+  display: inline-block; margin-top: 12px; padding: 8px 20px;
+  font-family: var(--pixel-cn); font-size: 14px;
+  background: var(--cyan); color: #000; border: none; cursor: pointer; text-decoration: none;
+}
+.error { color: #ff6b6b; padding: 12px; text-align: center; }
+
+/* QQ Show Asset Grid */
+.asset-section { padding: 16px; }
+.asset-category { margin-bottom: 16px; }
+.asset-category h3 {
+  font-family: var(--pixel-cn); font-size: 16px; color: var(--pink);
+  border-bottom: 1px solid #333; padding-bottom: 4px; margin-bottom: 8px;
+}
+.asset-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; }
+.asset-item {
+  width: 100%; aspect-ratio: 1; cursor: pointer; border: 2px solid transparent;
+  transition: all 0.2s; object-fit: contain; background: rgba(0,0,0,0.3);
+}
+.asset-item:hover { border-color: var(--pink); }
+.asset-item.selected { border-color: var(--cyan); box-shadow: 0 0 8px rgba(5,255,161,0.5); }
+
+/* Preview */
+.preview-panel {
+  position: fixed; bottom: 0; left: 0; right: 0; z-index: 100;
+  background: rgba(10,0,21,0.95); border-top: 2px solid var(--purple);
+  padding: 12px; text-align: center; display: none;
+}
+.preview-panel.show { display: block; }
+.preview-canvas { max-width: 200px; max-height: 200px; border: 2px solid var(--blue); }
+
+.footer { text-align: center; padding: 32px 16px; font-size: 14px; color: #555; }
+
+/* API Key Modal */
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 2000;
+  display: flex; align-items: center; justify-content: center;
+}
+.modal {
+  background: #1a0030; border: 2px solid var(--purple); padding: 24px;
+  max-width: 400px; width: 90%; color: #e0d0ff; font-family: var(--pixel-cn);
+}
+.modal h2 { font-size: 18px; margin-bottom: 12px; color: var(--pink); }
+.modal input {
+  width: 100%; padding: 10px; margin: 8px 0 16px; font-size: 14px;
+  background: #0a0015; color: var(--cyan); border: 1px solid var(--purple);
+}
+.modal button {
+  padding: 8px 16px; font-size: 14px; background: var(--purple); color: white;
+  border: none; cursor: pointer; margin-right: 8px;
+}
+</style>
+</head>
+<body>
+<div class="bg"></div>
+<div class="crt"></div>
+
+<div class="container">
+  <div class="header">
+    <h1>8bit 头像工坊</h1>
+    <div class="sub">PIXEL DREAM ✦</div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <div class="tab active" data-tab="pixelate">像素化</div>
+    <div class="tab" data-tab="generate">AI生图</div>
+    <div class="tab" data-tab="qqshow">QQ秀</div>
+  </div>
+
+  <!-- Tab 1: Pixelate -->
+  <div class="tab-content active" id="tab-pixelate">
+    <div class="upload-zone" id="upload-zone">
+      <div style="font-size:24px; margin-bottom:8px;">📸</div>
+      <div>点击或拖拽上传图片</div>
+      <div style="font-size:12px; color:#666; margin-top:8px;">支持 JPG/PNG，最大 5MB</div>
+    </div>
+    <input type="file" id="file-input" accept="image/*" style="display:none">
+
+    <div class="style-grid" id="style-grid"></div>
+
+    <button class="action-btn" id="btn-pixelate" disabled>✨ 开始像素化</button>
+
+    <div class="result-area">
+      <div class="loading" id="loading-pixelate">⏳ 像素化处理中...</div>
+      <img class="result-img" id="result-pixelate">
+      <a class="download-btn" id="download-pixelate" style="display:none">💾 下载图片</a>
+    </div>
+  </div>
+
+  <!-- Tab 2: AI Generate -->
+  <div class="tab-content" id="tab-generate">
+    <textarea class="text-input" id="ai-prompt" placeholder="描述你想要的像素风头像，比如：一个戴墨镜的猫咪，赛博朋克风格"></textarea>
+    <div class="style-grid" id="ai-style-grid"></div>
+    <button class="action-btn" id="btn-generate">🤖 AI 生成像素头像</button>
+    <div class="result-area">
+      <div class="loading" id="loading-generate">⏳ AI 生成中，请稍候...</div>
+      <img class="result-img" id="result-generate">
+      <a class="download-btn" id="download-generate" style="display:none">💾 下载图片</a>
+    </div>
+  </div>
+
+  <!-- Tab 3: QQ Show -->
+  <div class="tab-content" id="tab-qqshow">
+    <div class="asset-section" id="asset-section">
+      <p style="color:#888; margin-bottom:12px;">选择素材装扮你的QQ秀：</p>
+    </div>
+    <div class="style-grid" id="qq-style-grid"></div>
+    <button class="action-btn" id="btn-compose">🎨 生成QQ秀</button>
+    <div class="result-area">
+      <div class="loading" id="loading-compose">⏳ 生成中...</div>
+      <img class="result-img" id="result-compose">
+      <a class="download-btn" id="download-compose" style="display:none">💾 下载QQ秀</a>
+    </div>
+  </div>
+
+  <div class="footer">Pixel Dream v3.0 — 纯前端版 | Powered by Canvas API</div>
+</div>
+
+<!-- Preview Panel -->
+<div class="preview-panel" id="preview-panel">
+  <canvas class="preview-canvas" id="preview-canvas"></canvas>
+</div>
+
+<!-- API Key Modal -->
+<div class="modal-overlay" id="api-modal" style="display:none;">
+  <div class="modal">
+    <h2>🔑 设置 API Key</h2>
+    <p style="font-size:14px; margin-bottom:8px;">AI生图需要 Agnes AI API Key</p>
+    <input type="password" id="api-key-input" placeholder="输入 API Key">
+    <div>
+      <button onclick="saveApiKey()">保存</button>
+      <button onclick="document.getElementById('api-modal').style.display='none'" style="background:#555;">取消</button>
+    </div>
+  </div>
+</div>
+
+<script src="scripts/pixel-art.js"></script>
+<script>
+// ===== State =====
+let currentFile = null;
+let selectedStyle = 'snes';
+let selectedAssets = {};
+let catalog = null;
+let apiKey = localStorage.getItem('agnes_api_key') || '';
+
+// ===== Styles =====
+const STYLES = {
+  arcade: { label: '街机', sub: '粗犷复古' },
+  snes: { label: '像素', sub: '细腻高清' },
+  pico8: { label: 'Q萌', sub: '幻想主机' },
+  nes: { label: 'NES', sub: '经典红白机' },
+  gameboy: { label: 'GB', sub: '经典绿屏' },
+  c64: { label: 'C64', sub: '复古电脑' },
+  neon: { label: '霓虹', sub: '赛博朋克' },
+  retro: { label: '复古', sub: '暖色调' }
+};
+
+// ===== Init =====
+document.addEventListener('DOMContentLoaded', () => {
+  initTabs();
+  initStyleGrids();
+  initUpload();
+  initButtons();
+  loadCatalog();
+});
+
+// ===== Tabs =====
+function initTabs() {
+  document.querySelectorAll('.tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      tab.classList.add('active');
+      document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
+    });
+  });
+}
+
+// ===== Style Grids =====
+function initStyleGrids() {
+  ['style-grid', 'ai-style-grid', 'qq-style-grid'].forEach(gridId => {
+    const grid = document.getElementById(gridId);
+    Object.entries(STYLES).forEach(([key, val]) => {
+      const btn = document.createElement('div');
+      btn.className = 'style-btn' + (key === selectedStyle ? ' active' : '');
+      btn.innerHTML = `${val.label}<span class="sub">${val.sub}</span>`;
+      btn.dataset.style = key;
+      btn.addEventListener('click', () => {
+        grid.querySelectorAll('.style-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        selectedStyle = key;
+      });
+      grid.appendChild(btn);
+    });
+  });
+}
+
+// ===== Upload =====
+function initUpload() {
+  const zone = document.getElementById('upload-zone');
+  const input = document.getElementById('file-input');
+
+  zone.addEventListener('click', () => input.click());
+  zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('dragover'); });
+  zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
+  zone.addEventListener('drop', e => {
+    e.preventDefault();
+    zone.classList.remove('dragover');
+    if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+  });
+  input.addEventListener('change', () => { if (input.files.length) handleFile(input.files[0]); });
+}
+
+function handleFile(file) {
+  if (file.size > 5 * 1024 * 1024) { alert('文件太大，最大5MB'); return; }
+  currentFile = file;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const img = document.getElementById('result-pixelate');
+    img.src = e.target.result;
+    img.style.display = 'block';
+  };
+  reader.readAsDataURL(file);
+  document.getElementById('btn-pixelate').disabled = false;
+}
+
+// ===== Buttons =====
+function initButtons() {
+  document.getElementById('btn-pixelate').addEventListener('click', doPixelate);
+  document.getElementById('btn-generate').addEventListener('click', doGenerate);
+  document.getElementById('btn-compose').addEventListener('click', doCompose);
+}
+
+// ===== Pixelate =====
+async function doPixelate() {
+  if (!currentFile) return;
+  const loading = document.getElementById('loading-pixelate');
+  const result = document.getElementById('result-pixelate');
+  const download = document.getElementById('download-pixelate');
+
+  loading.style.display = 'block';
+  result.style.display = 'none';
+  download.style.display = 'none';
+
+  try {
+    const img = new Image();
+    img.src = result.src;
+    await new Promise(r => img.onload = r);
+
+    const canvas = PixelArt.pixelArt(img, selectedStyle);
+    result.src = canvas.toDataURL('image/png');
+    result.style.display = 'block';
+    download.href = result.src;
+    download.download = `pixel-${selectedStyle}-${Date.now()}.png`;
+    download.style.display = 'inline-block';
+  } catch (err) {
+    alert('像素化失败: ' + err.message);
+  } finally {
+    loading.style.display = 'none';
+  }
+}
+
+// ===== AI Generate =====
+async function doGenerate() {
+  const prompt = document.getElementById('ai-prompt').value.trim();
+  if (!prompt) { alert('请输入描述'); return; }
+  if (!apiKey) { document.getElementById('api-modal').style.display = 'flex'; return; }
+
+  const loading = document.getElementById('loading-generate');
+  const result = document.getElementById('result-generate');
+  const download = document.getElementById('download-generate');
+
+  loading.style.display = 'block';
+  result.style.display = 'none';
+  download.style.display = 'none';
+
+  try {
+    // Call Agnes API
+    const resp = await fetch('https://apihub.agnes-ai.com/v1/images/generations', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: 'flux',
+        prompt: `pixel art style, ${prompt}, retro game aesthetic, clean background`,
+        n: 1,
+        size: '1024x1024'
+      })
+    });
+
+    if (!resp.ok) throw new Error(`API error: ${resp.status}`);
+    const data = await resp.json();
+    const imageUrl = data.data[0].url;
+
+    // Load and pixelate
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.src = imageUrl;
+    await new Promise(r => img.onload = r);
+
+    const canvas = PixelArt.pixelArt(img, selectedStyle);
+    result.src = canvas.toDataURL('image/png');
+    result.style.display = 'block';
+    download.href = result.src;
+    download.download = `ai-pixel-${selectedStyle}-${Date.now()}.png`;
+    download.style.display = 'inline-block';
+  } catch (err) {
+    alert('AI生成失败: ' + err.message);
+  } finally {
+    loading.style.display = 'none';
+  }
+}
+
+// ===== QQ Show =====
+async function loadCatalog() {
+  try {
+    const resp = await fetch('asset-catalog.json');
+    catalog = await resp.json();
+    renderAssets();
+  } catch (err) {
+    console.error('Failed to load catalog:', err);
+  }
+}
+
+function renderAssets() {
+  if (!catalog) return;
+  const section = document.getElementById('asset-section');
+  const categories = ['face', 'hair', 'outfit', 'accessory', 'background'];
+
+  categories.forEach(cat => {
+    const items = catalog[cat];
+    if (!items || !items.length) return;
+
+    const div = document.createElement('div');
+    div.className = 'asset-category';
+    div.innerHTML = `<h3>${cat}</h3>`;
+
+    const grid = document.createElement('div');
+    grid.className = 'asset-grid';
+
+    items.slice(0, 12).forEach(item => {
+      const img = document.createElement('img');
+      img.className = 'asset-item';
+      img.src = `assets/${cat}/${item.file}`;
+      img.alt = item.name || cat;
+      img.title = item.name || cat;
+      img.addEventListener('click', () => {
+        // Toggle selection
+        if (selectedAssets[cat] === item.file) {
+          delete selectedAssets[cat];
+          img.classList.remove('selected');
+        } else {
+          // Deselect others in same category
+          grid.querySelectorAll('.asset-item').forEach(i => i.classList.remove('selected'));
+          selectedAssets[cat] = item.file;
+          img.classList.add('selected');
+        }
+      });
+      grid.appendChild(img);
+    });
+
+    div.appendChild(grid);
+    section.appendChild(div);
+  });
+}
+
+async function doCompose() {
+  if (!apiKey) { document.getElementById('api-modal').style.display = 'flex'; return; }
+
+  const loading = document.getElementById('loading-compose');
+  const result = document.getElementById('result-compose');
+  const download = document.getElementById('download-compose');
+
+  loading.style.display = 'block';
+  result.style.display = 'none';
+  download.style.display = 'none';
+
+  try {
+    // Create composition from selected assets
+    const canvas = document.createElement('canvas');
+    canvas.width = 400;
+    canvas.height = 400;
+    const ctx = canvas.getContext('2d');
+
+    // Load and draw selected assets
+    const assetPromises = Object.entries(selectedAssets).map(([cat, file]) => {
+      return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => { ctx.drawImage(img, 0, 0, 400, 400); resolve(); };
+        img.onerror = resolve;
+        img.src = `assets/${cat}/${file}`;
+      });
+    });
+
+    await Promise.all(assetPromises);
+
+    // Pixelate the composition
+    const compImg = new Image();
+    compImg.src = canvas.toDataURL();
+    await new Promise(r => compImg.onload = r);
+
+    const pixelCanvas = PixelArt.pixelArt(compImg, selectedStyle);
+    result.src = pixelCanvas.toDataURL('image/png');
+    result.style.display = 'block';
+    download.href = result.src;
+    download.download = `qqshow-${selectedStyle}-${Date.now()}.png`;
+    download.style.display = 'inline-block';
+  } catch (err) {
+    alert('QQ秀生成失败: ' + err.message);
+  } finally {
+    loading.style.display = 'none';
+  }
+}
+
+// ===== API Key =====
+function saveApiKey() {
+  apiKey = document.getElementById('api-key-input').value.trim();
+  if (apiKey) {
+    localStorage.setItem('agnes_api_key', apiKey);
+    document.getElementById('api-modal').style.display = 'none';
+  }
+}
+</script>
+</body>
+</html>
