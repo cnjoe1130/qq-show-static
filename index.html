@@ -159,9 +159,10 @@ body {
       <div style="font-size:14px;color:#b0a0d0;margin-top:6px;letter-spacing:4px;font-family:var(--pixel-cn);">✦ 像素梦核头像生成器 ✦</div>
     </div>
 
-    <div class="mode-tabs">
-      <div class="mode-tab active" onclick="switchMode('upload')">📷 上传图片</div>
-      <div class="mode-tab" onclick="switchMode('text')">✏️ 文字描述</div>
+    <div class="mode-tabs" id="mainTabs">
+      <div class="mode-tab active" onclick="switchMode('upload')">📷 上传</div>
+      <div class="mode-tab" onclick="switchMode('text')">✏️ 文字</div>
+      <div class="mode-tab" onclick="switchMode('aistyle')">🎨 AI画风</div>
       <div class="mode-tab" onclick="switchMode('qqshow')">✨ QQ秀</div>
     </div>
 
@@ -178,6 +179,20 @@ body {
     <div class="tab-content" id="tab-text">
       <textarea class="text-input" id="descInput" placeholder="描述你想生成的角色...&#10;例如：双马尾女孩，穿Coldplay T恤，拿着麦克风" maxlength="200" rows="3"></textarea>
       <div style="padding:0 16px;font-size:13px;color:#888;font-family:var(--pixel-cn);">💡 支持中英文描述，越详细效果越好</div>
+    </div>
+
+    <div class="tab-content" id="tab-aistyle">
+      <div class="upload-zone" id="aiDropZone" onclick="document.getElementById('aiFileInput').click()">
+        <div style="font-size:48px;">🎨</div>
+        <p style="font-size:18px;margin-top:8px;font-family:var(--pixel-cn);">上传你的照片</p>
+        <p style="font-size:14px;color:#888;font-family:var(--pixel-cn);">AI将根据你的照片生成不同风格的画作</p>
+      </div>
+      <input type="file" id="aiFileInput" accept="image/*" style="display:none" onchange="handleAIFile(this)">
+      <img class="preview-img" id="aiPreviewImg">
+      <div style="padding:0 16px;margin-top:12px;">
+        <div style="font-family:var(--pixel-cn);font-size:13px;color:#888;margin-bottom:8px;">选择画风：</div>
+        <div class="style-grid" id="aiStyleGrid"></div>
+      </div>
     </div>
 
     <div class="tab-content" id="tab-qqshow">
@@ -298,9 +313,22 @@ const STYLES = {
   pico8:   { icon: '💜', name: 'Q萌', sub: '幻想主机' },
   gameboy: { icon: '🟢', name: 'GB',  sub: '经典绿屏' },
 };
+
+const AI_STYLES = {
+  anime:    { icon: '🌸', name: '日系动漫', prompt: 'anime style, detailed illustration, cel shading, vibrant colors, clean linework, beautiful lighting' },
+  cyber:    { icon: '🌃', name: '赛博朋克', prompt: 'cyberpunk style, neon lights, holographic, futuristic, dark atmosphere, glowing effects, high detail' },
+  oil:      { icon: '🖼️', name: '油画风', prompt: 'oil painting style, thick brushstrokes, rich textures, classical art, warm tones, dramatic lighting' },
+  water:    { icon: '💧', name: '水彩风', prompt: 'watercolor painting, soft washes, delicate transparency, flowing colors, artistic, dreamy' },
+  vapor:    { icon: '🌊', name: '蒸汽波', prompt: 'vaporwave aesthetic, retrowave, 80s nostalgia, pastel gradients, chrome, grid, sunset colors' },
+  pixel3d:  { icon: '🧊', name: '3D像素', prompt: '3D pixel art, isometric view, voxel style, cute, colorful, low poly, detailed miniature' },
+  comic:    { icon: '💥', name: '美漫风', prompt: 'comic book style, bold outlines, halftone dots, dynamic pose, vivid colors, pop art' },
+  ink:      { icon: '🖌️', name: '水墨风', prompt: 'Chinese ink wash painting, sumi-e, black ink on rice paper, minimalist, elegant brushwork, traditional' },
+};
 let selectedStyle = 'arcade';
 let selectedFile = null;
 let currentMode = 'upload';
+let aiSelectedStyle = 'anime';
+let aiPhotoFile = null;
 
 const grid = document.getElementById('styleGrid');
 Object.entries(STYLES).forEach(([key, s]) => {
@@ -312,6 +340,24 @@ Object.entries(STYLES).forEach(([key, s]) => {
   grid.appendChild(b);
 });
 
+// AI画风样式网格
+const aiGrid = document.getElementById('aiStyleGrid');
+Object.entries(AI_STYLES).forEach(([key, s]) => {
+  const b = document.createElement('div');
+  b.className = 'style-btn' + (key === aiSelectedStyle ? ' active' : '');
+  b.innerHTML = `${s.icon}<br>${s.name}`;
+  b.onclick = () => selectAIStyle(key);
+  b.dataset.style = key;
+  aiGrid.appendChild(b);
+});
+
+function selectAIStyle(k) {
+  aiSelectedStyle = k;
+  aiGrid.querySelectorAll('.style-btn').forEach(b => b.classList.toggle('active', b.dataset.style === k));
+  beep(880, 0.08);
+  updateBtn();
+}
+
 function selectStyle(k) {
   selectedStyle = k;
   document.querySelectorAll('.style-btn').forEach(b => b.classList.toggle('active', b.dataset.style === k));
@@ -321,9 +367,13 @@ function selectStyle(k) {
 
 function switchMode(m) {
   currentMode = m;
-  document.querySelectorAll('.mode-tab').forEach((t,i) => t.classList.toggle('active', (i===0&&m==='upload')||(i===1&&m==='text')||(i===2&&m==='qqshow')));
-  document.querySelectorAll('.tab-content').forEach((t,i) => t.classList.toggle('active', (i===0&&m==='upload')||(i===1&&m==='text')||(i===2&&m==='qqshow')));
-  document.getElementById('styleSection').style.display = m === 'qqshow' ? 'none' : 'block';
+  const tabs = document.getElementById('mainTabs').children;
+  const contents = document.querySelectorAll('.tab-content');
+  const modeMap = { upload: 0, text: 1, aistyle: 2, qqshow: 3 };
+  const idx = modeMap[m] ?? 0;
+  for (let i = 0; i < tabs.length; i++) tabs[i].classList.toggle('active', i === idx);
+  for (let i = 0; i < contents.length; i++) contents[i].classList.toggle('active', i === idx);
+  document.getElementById('styleSection').style.display = (m === 'qqshow' || m === 'aistyle') ? 'none' : 'block';
   beep(660, 0.08);
   updateBtn();
 }
@@ -338,10 +388,21 @@ function handleFile(input) {
   updateBtn();
 }
 
+function handleAIFile(input) {
+  aiPhotoFile = input.files[0];
+  if (aiPhotoFile) {
+    const r = new FileReader();
+    r.onload = e => { const img = document.getElementById('aiPreviewImg'); img.src = e.target.result; img.style.display = 'block'; };
+    r.readAsDataURL(aiPhotoFile);
+  }
+  updateBtn();
+}
+
 function updateBtn() {
   const b = document.getElementById('generateBtn');
   if (currentMode === 'upload') b.disabled = !selectedFile;
   else if (currentMode === 'text') b.disabled = !document.getElementById('descInput').value.trim();
+  else if (currentMode === 'aistyle') b.disabled = !aiPhotoFile;
   else if (currentMode === 'qqshow') {
     if (qqMode === 'photo') b.disabled = !qqPhotoFile;
     else b.disabled = !document.getElementById('qqInput').value.trim();
@@ -377,6 +438,23 @@ if (qqdz) {
       const r = new FileReader();
       r.onload = ev => { document.getElementById('qqPreviewImg').src = ev.target.result; document.getElementById('qqPreviewImg').style.display = 'block'; };
       r.readAsDataURL(qqPhotoFile);
+      updateBtn();
+    }
+  });
+}
+
+// AI画风 photo drop
+const aidz = document.getElementById('aiDropZone');
+if (aidz) {
+  aidz.addEventListener('dragover', e => { e.preventDefault(); aidz.classList.add('dragover'); });
+  aidz.addEventListener('dragleave', () => aidz.classList.remove('dragover'));
+  aidz.addEventListener('drop', e => {
+    e.preventDefault(); aidz.classList.remove('dragover');
+    if (e.dataTransfer.files.length) {
+      aiPhotoFile = e.dataTransfer.files[0];
+      const r = new FileReader();
+      r.onload = ev => { document.getElementById('aiPreviewImg').src = ev.target.result; document.getElementById('aiPreviewImg').style.display = 'block'; };
+      r.readAsDataURL(aiPhotoFile);
       updateBtn();
     }
   });
@@ -784,10 +862,11 @@ async function generate() {
   beep(784, 0.15, 0.2);
 
   const isQQ = currentMode === 'qqshow';
+  const isAI = currentMode === 'aistyle';
   area.innerHTML = `<div class="loading-box">
     <div class="loading-bar-outer"><div class="loading-bar-inner" id="loadBar"></div></div>
-    <div class="loading-text" id="loadText">${isQQ ? '✦ 正在搭配QQ秀...' : '✦ 正在生成...'}</div>
-    <div class="loading-hint">${isQQ ? '从素材库中智能选搭，请等待 ✦' : '本地处理中，请等待 ✦'}</div>
+    <div class="loading-text" id="loadText">${isAI ? '✦ AI分析照片中...' : isQQ ? '✦ 正在搭配QQ秀...' : '✦ 正在生成...'}</div>
+    <div class="loading-hint">${isAI ? '识别特征 → 生成画作，请等待 ✦' : isQQ ? '从素材库中智能选搭，请等待 ✦' : '本地处理中，请等待 ✦'}</div>
   </div>`;
 
   // Cycling hints
@@ -795,8 +874,10 @@ async function generate() {
   const qqHints = ['分析描述特征...', '匹配发型...', '挑选服装...', '搭配配饰...', '选择背景...', '合成中...'];
   const qqPhotoHints = ['AI识别照片特征...', '本地筛选匹配素材...', 'AI智能选搭中...', '合成QQ秀...'];
   const textHints = ['发送请求至 Agnes AI...', '等待AI生成...', '正在下载图像...', '几乎好了...'];
+  const aiHints = ['AI识别照片特征...', '构建画风提示词...', 'AI绘画生成中...', '渲染画作...'];
   let hints;
-  if (isQQ) hints = (qqMode === 'photo') ? qqPhotoHints : qqHints;
+  if (isAI) hints = aiHints;
+  else if (isQQ) hints = (qqMode === 'photo') ? qqPhotoHints : qqHints;
   else if (currentMode === 'text') hints = textHints;
   else hints = pixelHints;
 
@@ -854,7 +935,7 @@ async function generate() {
         },
         body: JSON.stringify({
           prompt: `pixel art style, ${desc}, retro game aesthetic, 8-bit`,
-          model: 'flux',
+          model: 'agnes-image-2.1-flash',
           n: 1,
           size: '1024x1024'
         })
@@ -878,6 +959,106 @@ async function generate() {
         }
         area.innerHTML = `<img src="${src}" style="max-width:100%;border:3px solid var(--purple);image-rendering:pixelated;"><br>
           <a class="download-btn" href="${src}" download="pixel-dream-ai.png">💾 下载图片</a>`;
+      } else {
+        throw new Error('未返回图片数据');
+      }
+
+    } else if (currentMode === 'aistyle') {
+      // ===== AI画风：照片 → 分析 → 风格化生成 =====
+      const apiKey = localStorage.getItem('agnes_api_key');
+      if (!apiKey) {
+        clearInterval(hintTimer);
+        showApiKeyModal();
+        btn.disabled = false; btn.textContent = '✦ 开始生成 ✦';
+        area.innerHTML = '';
+        updateBtn();
+        return;
+      }
+
+      // Convert photo to base64
+      const base64 = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = e => resolve(e.target.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(aiPhotoFile);
+      });
+
+      // Step 1: AI分析照片特征
+      const aiResp = await fetch('https://apihub.agnes-ai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + apiKey
+        },
+        body: JSON.stringify({
+          model: 'agnes-2.0-flash',
+          messages: [{
+            role: 'user',
+            content: [
+              { type: 'text', text: `详细描述这张照片中人物的外貌特征，用于生成风格化画作。用英文输出，包含：gender, hair color, hair style, facial features, clothing, accessories, pose, expression. 输出逗号分隔的描述短语，不要完整句子。例如：young woman, long black hair, bangs, brown eyes, white t-shirt, smiling, front facing` },
+              { type: 'image_url', image_url: { url: base64 } }
+            ]
+          }],
+          max_tokens: 150
+        })
+      });
+
+      let features = 'a person';
+      if (aiResp.ok) {
+        const aiData = await aiResp.json();
+        features = aiData.choices?.[0]?.message?.content || 'a person';
+      }
+
+      // Step 2: 构建风格化提示词
+      const styleInfo = AI_STYLES[aiSelectedStyle];
+      const prompt = `portrait of ${features}, ${styleInfo.prompt}, masterpiece, best quality, highly detailed`;
+
+      // Step 3: 生成图片
+      const imgResp = await fetch('https://apihub.agnes-ai.com/v1/images/generations', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + apiKey
+        },
+        body: JSON.stringify({
+          prompt: prompt,
+          model: 'agnes-image-2.1-flash',
+          n: 1,
+          size: '1024x1024'
+        })
+      });
+
+      clearInterval(hintTimer);
+
+      if (!imgResp.ok) {
+        const errData = await imgResp.json().catch(() => ({}));
+        throw new Error(errData.error?.message || `生成失败 ${imgResp.status}`);
+      }
+
+      const imgData = await imgResp.json();
+      const resultUrl = imgData.data?.[0]?.url || imgData.data?.[0]?.b64_json;
+
+      if (resultUrl) {
+        let src = resultUrl;
+        if (resultUrl.startsWith('data:') || resultUrl.length > 200) {
+          src = 'data:image/png;base64,' + resultUrl;
+        }
+        area.innerHTML = `
+          <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:12px;">
+            <div style="text-align:center;">
+              <div style="font-size:11px;color:#888;font-family:var(--pixel-cn);margin-bottom:4px;">原图</div>
+              <img src="${base64}" style="width:120px;height:120px;object-fit:cover;border:2px solid #333;">
+            </div>
+            <div style="text-align:center;">
+              <div style="font-size:11px;color:#888;font-family:var(--pixel-cn);margin-bottom:4px;">${styleInfo.icon} ${styleInfo.name}</div>
+              <img src="${src}" style="width:120px;height:120px;object-fit:cover;border:2px solid var(--purple);">
+            </div>
+          </div>
+          <div style="padding:0 16px;margin-bottom:8px;">
+            <div style="font-size:11px;color:#666;font-family:var(--pixel-cn);word-break:break-all;background:#0d0020;padding:6px 8px;border:1px solid #222;">prompt: ${prompt}</div>
+          </div>
+          <a class="download-btn" href="${src}" download="ai-style-${aiSelectedStyle}.png">💾 下载画作</a>`;
+
       } else {
         throw new Error('未返回图片数据');
       }
