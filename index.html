@@ -909,7 +909,7 @@ async function generate() {
           reader.readAsDataURL(qqPhotoFile);
         });
 
-        // Ask AI to describe the photo for matching
+        // AI分析照片特征 — 结构化输出
         const aiResp = await fetch('https://apihub.agnes-ai.com/v1/chat/completions', {
           method: 'POST',
           headers: {
@@ -917,26 +917,41 @@ async function generate() {
             'Authorization': 'Bearer ' + apiKey
           },
           body: JSON.stringify({
-            model: 'gemini-2.0-flash',
+            model: 'agnes-2.0-flash',
             messages: [{
               role: 'user',
               content: [
-                { type: 'text', text: 'Describe this person in Chinese keywords for matching QQ Show assets. Output ONLY comma-separated keywords like: 粉色,双马尾,连衣裙,星空背景. No explanation needed.' },
+                { type: 'text', text: `分析这张照片中的人物特征，用于生成QQ秀形象。请严格按以下JSON格式输出，不要多余文字：
+{"gender":"男/女","hair":"发型描述","hairColor":"发色","style":"风格","clothes":"服装描述","clothesColor":"服装颜色","accessories":"配饰（没有则写无）","mood":"氛围","keywords":"逗号分隔的中文关键词，用于匹配素材库，包含上述所有特征"}` },
                 { type: 'image_url', image_url: { url: base64 } }
               ]
             }],
-            max_tokens: 100
+            max_tokens: 200
           })
         });
 
         if (aiResp.ok) {
           const aiData = await aiResp.json();
-          const desc = aiData.choices?.[0]?.message?.content || '';
-          analysisText = '🔍 AI识别：' + desc;
-          composition = matchAssetsFromDescription(desc, data);
+          const raw = aiData.choices?.[0]?.message?.content || '';
+          // Try parse JSON from response
+          let analysis = null;
+          try {
+            const jsonMatch = raw.match(/\{[\s\S]*\}/);
+            if (jsonMatch) analysis = JSON.parse(jsonMatch[0]);
+          } catch(e) {}
+          
+          if (analysis) {
+            const kw = analysis.keywords || raw;
+            composition = matchAssetsFromDescription(kw, data);
+            analysisText = JSON.stringify(analysis);
+          } else {
+            // Fallback: treat raw text as keywords
+            composition = matchAssetsFromDescription(raw, data);
+            analysisText = JSON.stringify({keywords: raw, gender:'', hair:'', hairColor:'', style:'', clothes:'', clothesColor:'', accessories:'', mood:''});
+          }
         } else {
           composition = buildDefaultComposition(data);
-          analysisText = '🔍 使用默认搭配';
+          analysisText = JSON.stringify({keywords:'', gender:'', hair:'', hairColor:'', style:'', clothes:'', clothesColor:'', accessories:'', mood:'', error:true});
         }
 
       } else {
@@ -963,9 +978,41 @@ async function generate() {
         .join('');
 
       const catList = Object.values(composition).map(v => v.name).filter(Boolean).join(' · ');
+      
+      // Build analysis card
+      let analysisCard = '';
+      if (analysisText) {
+        let a = {};
+        try { a = JSON.parse(analysisText); } catch(e) { a = {keywords: analysisText}; }
+        if (!a.error && (a.gender || a.hair || a.keywords)) {
+          const fields = [
+            { icon: '👤', label: '性别', val: a.gender },
+            { icon: '💇', label: '发型', val: a.hair },
+            { icon: '🎨', label: '发色', val: a.hairColor },
+            { icon: '✨', label: '风格', val: a.style },
+            { icon: '👗', label: '服装', val: a.clothesColor && a.clothes ? a.clothesColor + a.clothes : a.clothes },
+            { icon: '💎', label: '配饰', val: a.accessories },
+            { icon: '🌟', label: '氛围', val: a.mood },
+          ].filter(f => f.val && f.val !== '无' && f.val !== '没有');
+          
+          const rows = fields.map(f => 
+            `<div style="display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid #222;">
+              <span style="font-size:14px;">${f.icon}</span>
+              <span style="color:#888;font-size:12px;min-width:36px;">${f.label}</span>
+              <span style="color:var(--cyan);font-size:13px;font-family:var(--pixel-cn);">${f.val}</span>
+            </div>`
+          ).join('');
+          
+          analysisCard = `<div style="margin:8px 16px;padding:10px;background:linear-gradient(135deg,#1a0030,#0d0020);border:1px solid var(--purple);border-radius:4px;">
+            <div style="font-size:13px;color:var(--pink);font-family:var(--pixel-cn);margin-bottom:6px;">🔍 AI特征识别</div>
+            ${rows}
+          </div>`;
+        }
+      }
+
       area.innerHTML = `
         <div id="qqPreviewBox" style="position:relative;width:200px;height:250px;margin:0 auto;border:3px solid var(--purple);background:#000;image-rendering:pixelated;">${layers}</div>
-        ${analysisText ? `<div style="margin:8px 16px;padding:8px;background:#1a0030;border:1px solid #333;font-size:12px;color:#aaa;font-family:var(--pixel-cn);white-space:pre-line;">${analysisText}</div>` : ''}
+        ${analysisCard}
         <div style="margin-top:12px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap;">
           <button class="download-btn" onclick="downloadQQShow('${uid}')">💾 下载QQ秀</button>
           <button class="download-btn" style="background:var(--purple);color:white;" onclick="openDressUp('${uid}', ${JSON.stringify(composition).replace(/'/g, "\\'").replace(/"/g, '&quot;')})">🎨 去搭配</button>
