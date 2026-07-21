@@ -945,19 +945,29 @@ async function generate() {
         composition = matchAssetsFromDescription(desc, data);
       }
 
-      // Compose the image locally
-      const canvas = await composeQQShow(composition);
+      // Compose the image using DOM layers (preserves GIF animation)
       const uid = 'local_' + Date.now();
-      const url = canvas.toDataURL('image/png');
 
       clearInterval(hintTimer);
 
+      // Build layer HTML
+      const layerOrder = [
+        'backgrounds', 'back-hair', 'outfit', 'top', 'bottom',
+        'makeup', 'front-hair', 'headwear', 'head-set', 'glasses',
+        'face-decor', 'earrings', 'neckwear', 'background-decor', 'frame',
+        'companion', 'sparkle', 'wings', 'vehicle', 'text'
+      ];
+      const layers = layerOrder
+        .filter(cat => composition[cat] && composition[cat].file)
+        .map(cat => `<img src="assets/${composition[cat].file}" style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:contain;">`)
+        .join('');
+
       const catList = Object.values(composition).map(v => v.name).filter(Boolean).join(' · ');
       area.innerHTML = `
-        <img src="${url}" style="max-width:100%;border:3px solid var(--purple);"><br>
+        <div id="qqPreviewBox" style="position:relative;width:200px;height:250px;margin:0 auto;border:3px solid var(--purple);background:#000;image-rendering:pixelated;">${layers}</div>
         ${analysisText ? `<div style="margin:8px 16px;padding:8px;background:#1a0030;border:1px solid #333;font-size:12px;color:#aaa;font-family:var(--pixel-cn);white-space:pre-line;">${analysisText}</div>` : ''}
         <div style="margin-top:12px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap;">
-          <a class="download-btn" href="${url}" download="qqshow-${uid}.png">💾 下载QQ秀</a>
+          <button class="download-btn" onclick="downloadQQShow('${uid}')">💾 下载QQ秀</button>
           <button class="download-btn" style="background:var(--purple);color:white;" onclick="openDressUp('${uid}', ${JSON.stringify(composition).replace(/'/g, "\\'").replace(/"/g, '&quot;')})">🎨 去搭配</button>
         </div>
         <div style="margin-top:8px;font-size:12px;color:#888;font-family:var(--pixel-cn);">${catList}</div>`;
@@ -970,6 +980,39 @@ async function generate() {
   btn.disabled = false;
   btn.textContent = '✦ 开始生成 ✦';
   updateBtn();
+}
+
+// ======================================================
+// DOWNLOAD QQ SHOW — capture DOM as PNG
+// ======================================================
+async function downloadQQShow(uid) {
+  const box = document.getElementById('qqPreviewBox');
+  if (!box) return;
+
+  const canvas = document.createElement('canvas');
+  canvas.width = 400;
+  canvas.height = 500;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#000';
+  ctx.fillRect(0, 0, 400, 500);
+
+  const imgs = box.querySelectorAll('img');
+  for (const img of imgs) {
+    try {
+      await new Promise((resolve, reject) => {
+        if (img.complete && img.naturalWidth > 0) { resolve(); return; }
+        img.onload = resolve;
+        img.onerror = reject;
+      });
+      ctx.drawImage(img, 0, 0, 400, 500);
+    } catch(e) { console.warn('Failed to draw layer:', e); }
+  }
+
+  const url = canvas.toDataURL('image/png');
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'qqshow-' + uid + '.png';
+  a.click();
 }
 
 // ======================================================
