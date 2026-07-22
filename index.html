@@ -1005,30 +1005,48 @@ async function generate() {
         reader.readAsDataURL(aiPhotoFile);
       });
 
-      // Step 1: AI分析照片特征
-      const aiResp = await fetch('https://apihub.agnes-ai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer ' + apiKey
-        },
-        body: JSON.stringify({
-          model: 'agnes-2.0-flash',
-          messages: [{
-            role: 'user',
-            content: [
-              { type: 'text', text: `详细描述这张照片中人物的外貌特征，用于生成风格化画作。用英文输出，包含：gender, hair color, hair style, facial features, clothing, accessories, pose, expression. 输出逗号分隔的描述短语，不要完整句子。例如：young woman, long black hair, bangs, brown eyes, white t-shirt, smiling, front facing` },
-              { type: 'image_url', image_url: { url: base64 } }
-            ]
-          }],
-          max_tokens: 150
-        })
-      });
+      // Step 1: AI分析照片特征（带重试）
+      let aiResp;
+      const analysisRetries = 3;
+      for (let attempt = 1; attempt <= analysisRetries; attempt++) {
+        aiResp = await fetch('https://apihub.agnes-ai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + apiKey
+          },
+          body: JSON.stringify({
+            model: 'agnes-2.0-flash',
+            messages: [{
+              role: 'user',
+              content: [
+                { type: 'text', text: `详细描述这张照片中人物的外貌特征，用于生成风格化画作。用英文输出，包含：gender, hair color, hair style, facial features, clothing, accessories, pose, expression. 输出逗号分隔的描述短语，不要完整句子。例如：young woman, long black hair, bangs, brown eyes, white t-shirt, smiling, front facing` },
+                { type: 'image_url', image_url: { url: base64 } }
+              ]
+            }],
+            max_tokens: 150
+          })
+        });
+        if (aiResp.ok) break;
+        if (attempt < analysisRetries) {
+          const waitMs = attempt * 3000;
+          const ht = document.getElementById('loadText');
+          if (ht) ht.textContent = `✦ 分析服务繁忙，${waitMs/1000}秒后重试 (${attempt}/${analysisRetries})`;
+          await new Promise(r => setTimeout(r, waitMs));
+        }
+      }
 
-      let features = 'a person';
-      if (aiResp.ok) {
-        const aiData = await aiResp.json();
-        features = aiData.choices?.[0]?.message?.content || 'a person';
+      if (!aiResp.ok) {
+        clearInterval(hintTimer);
+        const errData = await aiResp.json().catch(() => ({}));
+        throw new Error(`照片分析失败：${errData.error?.message || aiResp.status}。请稍后重试`);
+      }
+
+      const aiData = await aiResp.json();
+      const features = aiData.choices?.[0]?.message?.content?.trim();
+      if (!features) {
+        clearInterval(hintTimer);
+        throw new Error('照片分析返回为空，请换一张照片重试');
       }
 
       // Step 2: 构建风格化提示词
@@ -1123,36 +1141,55 @@ async function generate() {
           reader.readAsDataURL(qqPhotoFile);
         });
 
-        // Step 1: AI分析照片特征
-        const aiResp = await fetch('https://apihub.agnes-ai.com/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer ' + apiKey
-          },
-          body: JSON.stringify({
-            model: 'agnes-2.0-flash',
-            messages: [{
-              role: 'user',
-              content: [
-                { type: 'text', text: `分析这张照片中的人物特征，用于生成QQ秀形象。请严格按以下JSON格式输出，不要多余文字：
-{"gender":"男/女","hair":"发型描述(如:长发/短发/双马尾/卷发/直发/马尾/盘发)","hairColor":"发色(如:黑/棕/金/粉/紫/蓝/红/亚麻/白)","style":"风格(如:清新/酷帅/甜美/文艺/运动/复古/优雅)","clothes":"服装描述(如:T恤/连衣裙/西装/卫衣/衬衫/校服)","clothesColor":"服装颜色","accessories":"配饰(没有则写无)","mood":"氛围(如:阳光/温柔/冷酷/可爱/酷炫)"}` },
-                { type: 'image_url', image_url: { url: base64 } }
-              ]
-            }],
-            max_tokens: 200
-          })
-        });
+        // Step 1: AI分析照片特征（带重试）
+        let aiResp;
+        const qqRetries = 3;
+        for (let attempt = 1; attempt <= qqRetries; attempt++) {
+          aiResp = await fetch('https://apihub.agnes-ai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer ' + apiKey
+            },
+            body: JSON.stringify({
+              model: 'agnes-2.0-flash',
+              messages: [{
+                role: 'user',
+                content: [
+                  { type: 'text', text: `分析这张照片中的人物特征，用于生成QQ秀形象。请严格按以下JSON格式输出，不要多余文字：\n{"gender":"男/女","hair":"发型描述(如:长发/短发/双马尾/卷发/直发/马尾/盘发)","hairColor":"发色(如:黑/棕/金/粉/紫/蓝/红/亚麻/白)","style":"风格(如:清新/酷帅/甜美/文艺/运动/复古/优雅)","clothes":"服装描述(如:T恤/连衣裙/西装/卫衣/衬衫/校服)","clothesColor":"服装颜色","accessories":"配饰(没有则写无)","mood":"氛围(如:阳光/温柔/冷酷/可爱/酷炫)"}` },
+                  { type: 'image_url', image_url: { url: base64 } }
+                ]
+              }],
+              max_tokens: 200
+            })
+          });
+          if (aiResp.ok) break;
+          if (attempt < qqRetries) {
+            const waitMs = attempt * 3000;
+            const ht = document.getElementById('loadText');
+            if (ht) ht.textContent = `✦ 分析服务繁忙，${waitMs/1000}秒后重试 (${attempt}/${qqRetries})`;
+            await new Promise(r => setTimeout(r, waitMs));
+          }
+        }
 
+        if (!aiResp.ok) {
+          clearInterval(hintTimer);
+          const errData = await aiResp.json().catch(() => ({}));
+          throw new Error(`照片分析失败：${errData.error?.message || aiResp.status}。请稍后重试`);
+        }
+
+        const aiData = await aiResp.json();
+        const raw = aiData.choices?.[0]?.message?.content || '';
         let analysis = { gender:'', hair:'', hairColor:'', style:'', clothes:'', clothesColor:'', accessories:'', mood:'' };
+        try {
+          const jsonMatch = raw.match(/\{[\s\S]*\}/);
+          if (jsonMatch) analysis = JSON.parse(jsonMatch[0]);
+        } catch(e) {}
 
-        if (aiResp.ok) {
-          const aiData = await aiResp.json();
-          const raw = aiData.choices?.[0]?.message?.content || '';
-          try {
-            const jsonMatch = raw.match(/\{[\s\S]*\}/);
-            if (jsonMatch) analysis = JSON.parse(jsonMatch[0]);
-          } catch(e) {}
+        // 检查分析结果是否有效（至少有gender或hair）
+        if (!analysis.gender && !analysis.hair) {
+          clearInterval(hintTimer);
+          throw new Error('照片分析结果无效，请换一张清晰的人物照片重试');
         }
 
         // Step 2: 本地根据特征过滤素材库，缩小范围
