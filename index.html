@@ -496,11 +496,21 @@ async function loadCatalog() {
   if (catalog) return catalog;
   try {
     const resp = await fetch('asset-catalog.json');
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
     catalog = await resp.json();
     return catalog;
   } catch(e) {
     console.error('Failed to load asset catalog:', e);
-    return null;
+    // Retry once
+    try {
+      const resp = await fetch('asset-catalog.json?' + Date.now());
+      if (!resp.ok) throw new Error('HTTP ' + resp.status);
+      catalog = await resp.json();
+      return catalog;
+    } catch(e2) {
+      console.error('Retry also failed:', e2);
+      return null;
+    }
   }
 }
 
@@ -540,6 +550,7 @@ function buildDefaultComposition(data) {
 // AI DESCRIPTION → KEYWORD MATCHING for QQ Show
 // ======================================================
 function matchAssetsFromDescription(description, catalogData) {
+  if (!catalogData || typeof catalogData !== 'object') return buildDefaultComposition({});
   const desc = description.toLowerCase();
   const comp = {};
 
@@ -1068,7 +1079,7 @@ async function generate() {
       const data = await loadCatalog();
       if (!data) throw new Error('无法加载素材目录');
 
-      let composition;
+      let composition = {};
       let analysisText = '';
 
       if (qqMode === 'photo' && qqPhotoFile) {

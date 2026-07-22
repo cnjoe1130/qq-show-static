@@ -79,36 +79,37 @@ function closestColor(r, g, b, palette) {
 function generatePalette(imageData, numColors) {
   const pixels = [];
   const data = imageData.data;
-  for (let i = 0; i < data.length; i += 4) {
+  // Limit pixels for performance (max ~50000 pixels)
+  const step = Math.max(1, Math.floor(data.length / 4 / 50000));
+  for (let i = 0; i < data.length; i += 4 * step) {
     pixels.push([data[i], data[i + 1], data[i + 2]]);
   }
   
-  // Simple median cut
-  function medianCut(pixels, depth) {
-    if (depth === 0 || pixels.length === 0) {
-      if (pixels.length === 0) return [[0, 0, 0]];
-      const avg = [0, 0, 0];
-      for (const [r, g, b] of pixels) {
-        avg[0] += r; avg[1] += g; avg[2] += b;
+  // Simple median cut — iterative to avoid stack overflow
+  function medianCut(startPixels, maxDepth) {
+    let groups = [startPixels];
+    for (let d = 0; d < maxDepth; d++) {
+      const newGroups = [];
+      for (const group of groups) {
+        if (group.length < 2) { newGroups.push(group); continue; }
+        let ranges = [0, 1, 2].map(ch => {
+          let min = 255, max = 0;
+          for (const p of group) { if (p[ch] < min) min = p[ch]; if (p[ch] > max) max = p[ch]; }
+          return max - min;
+        });
+        const splitCh = ranges.indexOf(Math.max(...ranges));
+        group.sort((a, b) => a[splitCh] - b[splitCh]);
+        const mid = Math.floor(group.length / 2);
+        newGroups.push(group.slice(0, mid), group.slice(mid));
       }
-      const n = pixels.length;
-      return [[Math.round(avg[0] / n), Math.round(avg[1] / n), Math.round(avg[2] / n)]];
+      groups = newGroups;
     }
-    
-    // Find channel with greatest range
-    let ranges = [0, 1, 2].map(ch => {
-      const vals = pixels.map(p => p[ch]);
-      return Math.max(...vals) - Math.min(...vals);
+    return groups.map(g => {
+      if (g.length === 0) return [0, 0, 0];
+      const avg = [0, 0, 0];
+      for (const [r, g2, b] of g) { avg[0] += r; avg[1] += g2; avg[2] += b; }
+      return [Math.round(avg[0] / g.length), Math.round(avg[1] / g.length), Math.round(avg[2] / g.length)];
     });
-    const splitCh = ranges.indexOf(Math.max(...ranges));
-    
-    pixels.sort((a, b) => a[splitCh] - b[splitCh]);
-    const mid = Math.floor(pixels.length / 2);
-    
-    return [
-      ...medianCut(pixels.slice(0, mid), depth - 1),
-      ...medianCut(pixels.slice(mid), depth - 1)
-    ];
   }
   
   const depth = Math.ceil(Math.log2(numColors));
@@ -219,12 +220,22 @@ function posterize(imageData, bits) {
 function pixelArt(img, preset = 'arcade', overrides = {}) {
   const cfg = { ...PRESETS[preset], ...overrides };
   
+  // Limit source size for performance
+  let w = img.naturalWidth || img.width;
+  let h = img.naturalHeight || img.height;
+  const MAX_DIM = 2048;
+  if (w > MAX_DIM || h > MAX_DIM) {
+    const scale = MAX_DIM / Math.max(w, h);
+    w = Math.round(w * scale);
+    h = Math.round(h * scale);
+  }
+  
   // Create source canvas
   const srcCanvas = document.createElement('canvas');
-  srcCanvas.width = img.naturalWidth || img.width;
-  srcCanvas.height = img.naturalHeight || img.height;
+  srcCanvas.width = w;
+  srcCanvas.height = h;
   const srcCtx = srcCanvas.getContext('2d');
-  srcCtx.drawImage(img, 0, 0);
+  srcCtx.drawImage(img, 0, 0, w, h);
   
   // Get source data
   const srcData = srcCtx.getImageData(0, 0, srcCanvas.width, srcCanvas.height);
