@@ -938,19 +938,30 @@ async function generate() {
       }
 
       const desc = document.getElementById('descInput').value.trim();
-      const resp = await fetch('https://apihub.agnes-ai.com/v1/images/generations', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer ' + apiKey
-        },
-        body: JSON.stringify({
-          prompt: `pixel art style, ${desc}, retro game aesthetic, 8-bit`,
-          model: 'agnes-image-2.1-flash',
-          n: 1,
-          size: '1024x1024'
-        })
-      });
+      let resp;
+      const maxRetries = 3;
+      for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        resp = await fetch('https://apihub.agnes-ai.com/v1/images/generations', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + apiKey
+          },
+          body: JSON.stringify({
+            prompt: `pixel art style, ${desc}, retro game aesthetic, 8-bit`,
+            model: 'agnes-image-2.1-flash',
+            n: 1,
+            size: '1024x1024'
+          })
+        });
+        if (resp.ok) break;
+        if (attempt < maxRetries) {
+          const waitMs = attempt * 5000;
+          const ht = document.getElementById('loadText');
+          if (ht) ht.textContent = `✦ 服务繁忙，${waitMs/1000}秒后重试 (${attempt}/${maxRetries})`;
+          await new Promise(r => setTimeout(r, waitMs));
+        }
+      }
 
       if (!resp.ok) {
         const errData = await resp.json().catch(() => ({}));
@@ -1024,20 +1035,31 @@ async function generate() {
       const styleInfo = AI_STYLES[aiSelectedStyle];
       const prompt = `portrait of ${features}, ${styleInfo.prompt}, masterpiece, best quality, highly detailed`;
 
-      // Step 3: 生成图片
-      const imgResp = await fetch('https://apihub.agnes-ai.com/v1/images/generations', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer ' + apiKey
-        },
-        body: JSON.stringify({
-          prompt: prompt,
-          model: 'agnes-image-2.1-flash',
-          n: 1,
-          size: '1024x1024'
-        })
-      });
+      // Step 3: 生成图片（带重试）
+      let imgResp;
+      const maxRetries = 3;
+      for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        imgResp = await fetch('https://apihub.agnes-ai.com/v1/images/generations', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + apiKey
+          },
+          body: JSON.stringify({
+            prompt: prompt,
+            model: 'agnes-image-2.1-flash',
+            n: 1,
+            size: '1024x1024'
+          })
+        });
+        if (imgResp.ok) break;
+        if (attempt < maxRetries) {
+          const waitMs = attempt * 5000;
+          const ht2 = document.getElementById('loadText');
+          if (ht2) ht2.textContent = `✦ 服务繁忙，${waitMs/1000}秒后重试 (${attempt}/${maxRetries})`;
+          await new Promise(r => setTimeout(r, waitMs));
+        }
+      }
 
       clearInterval(hintTimer);
 
